@@ -1,0 +1,25 @@
+# Render Blueprint for the ClockAm API.
+# Fill the values marked "sync: false" in the Render dashboard (they are not stored in Git).
+services:
+  - type: web
+    name: clockam-api
+    runtime: node
+    plan: free
+    buildCommand: npm install --workspace apps/api
+    startCommand: npm run start:api
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGODB_URI
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: CORS_ORIGINS
+        sync: false          # e.g. https://your-app.vercel.app
+      - key: WEBAUTHN_RP_ID
+        sync: false          # your Vercel domain, no https://, e.g. your-app.vercel.app
+      - key: WEBAUTHN_RP_NAME
+        value: ClockAm
+      - key: WEBAUTHN_ORIGIN
+        sync: false          # e.g. https://your-app.vercel.app

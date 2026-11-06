@@ -1,0 +1,13 @@
+{
+  "name": "clockam",
+  "version": "0.1.0",
+  "private": true,
+  "description": "ClockAm - biometric clock-in and attendance platform by Frankiecode Solutions",
+  "workspaces": ["apps/*"],
+  "scripts": {
+    "dev:api": "npm run dev -w apps/api",
+    "dev:web": "npm run dev -w apps/web",
+    "start:api": "npm run start -w apps/api",
+    "build:web": "npm run build -w apps/web"
+  }
+}
