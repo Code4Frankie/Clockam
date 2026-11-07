@@ -23,3 +23,20 @@ services:
         value: ClockAm
       - key: WEBAUTHN_ORIGIN
         sync: false          # e.g. https://your-app.vercel.app
+      # Assistant (server-side only)
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: ANTHROPIC_MODEL
+        value: claude-sonnet-5-5
+      - key: AGENT_MAX_STEPS
+        value: "8"
+      - key: AGENT_TIMEOUT_MS
+        value: "60000"
+      - key: AGENT_RATE_LIMIT_PER_MIN
+        value: "20"
+      - key: AGENT_CONFIRM_TTL_SECONDS
+        value: "300"
+      - key: AGENT_LOG_RETENTION_DAYS
+        value: "90"
+      - key: PLATFORM_ADMIN_USER_IDS
+        sync: false          # your user id(s), comma-separated (GET /api/auth/me -> user.id)

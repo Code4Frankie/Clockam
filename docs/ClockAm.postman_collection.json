@@ -1,0 +1,106 @@
+{
+  "info": {
+    "name": "ClockAm API",
+    "description": "Assistant, confirmation and site-audit endpoints. Run Auth > Login first: its test script saves the token.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+  "variable": [
+    { "key": "apiUrl", "value": "http://localhost:4000" },
+    { "key": "orgSlug", "value": "your-workplace-id" },
+    { "key": "email", "value": "owner@example.com" },
+    { "key": "password", "value": "change-me" },
+    { "key": "token", "value": "" },
+    { "key": "confirmationId", "value": "" },
+    { "key": "suggestionId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "request": { "auth": { "type": "noauth" }, "method": "GET", "url": "{{apiUrl}}/health" }
+    },
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Login",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "const j = pm.response.json();",
+            "if (j.token) pm.collectionVariables.set('token', j.token);",
+            "pm.test('logged in', () => pm.response.to.have.status(200));"
+          ] } }],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"orgSlug\": \"{{orgSlug}}\",\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}" },
+            "url": "{{apiUrl}}/api/auth/login"
+          }
+        },
+        { "name": "Me (shows user.id and isPlatformAdmin)", "request": { "method": "GET", "url": "{{apiUrl}}/api/auth/me" } }
+      ]
+    },
+    {
+      "name": "Agent",
+      "item": [
+        {
+          "name": "Chat (single JSON reply)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "const j = pm.response.json();",
+            "if (j.pending && j.pending[0]) pm.collectionVariables.set('confirmationId', j.pending[0].confirmationId);",
+            "pm.test('status 200', () => pm.response.to.have.status(200));"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"messages\": [\n    { \"role\": \"user\", \"content\": \"Who is late or absent today?\" }\n  ]\n}" },
+            "url": { "raw": "{{apiUrl}}/api/agent/chat?stream=false", "host": ["{{apiUrl}}"], "path": ["api", "agent", "chat"], "query": [{ "key": "stream", "value": "false" }] }
+          }
+        },
+        {
+          "name": "Chat (Server-Sent Events stream)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"messages\": [\n    { \"role\": \"user\", \"content\": \"Who forgot to clock out recently?\" }\n  ]\n}" },
+            "url": "{{apiUrl}}/api/agent/chat"
+          }
+        },
+        {
+          "name": "Confirm a pending action",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"confirmationId\": \"{{confirmationId}}\",\n  \"approve\": true\n}" },
+            "url": "{{apiUrl}}/api/agent/confirm"
+          }
+        },
+        {
+          "name": "Cancel a pending action",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"confirmationId\": \"{{confirmationId}}\",\n  \"approve\": false\n}" },
+            "url": "{{apiUrl}}/api/agent/confirm"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin SEO (platform admin only)",
+      "item": [
+        { "name": "Report", "request": { "method": "GET", "url": "{{apiUrl}}/api/admin/seo/report" } },
+        { "name": "List suggestions", "request": { "method": "GET", "url": "{{apiUrl}}/api/admin/seo/suggestions" } },
+        {
+          "name": "Approve or reject a suggestion",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"status\": \"approved\"\n}" },
+            "url": "{{apiUrl}}/api/admin/seo/suggestions/{{suggestionId}}"
+          }
+        }
+      ]
+    }
+  ]
+}

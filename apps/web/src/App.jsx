@@ -10,6 +10,8 @@ import Devices from './pages/Devices.jsx';
 import Reports from './pages/Reports.jsx';
 import MyFingerprint from './pages/MyFingerprint.jsx';
 import Kiosk from './pages/Kiosk.jsx';
+import AdminSeo from './pages/AdminSeo.jsx';
+import Landing from './pages/Landing.jsx';
 
 function Protected({ children }) {
   const { user, loading } = useAuth();
@@ -25,15 +27,17 @@ function Home() {
 export default function App() {
   return (
     <Routes>
+      <Route path="/" element={<Landing />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<RegisterOrg />} />
       <Route path="/kiosk/:orgSlug" element={<Kiosk />} />
       <Route element={<Protected><Layout /></Protected>}>
-        <Route path="/" element={<Home />} />
+        <Route path="/dashboard" element={<Home />} />
         <Route path="/employees" element={<Employees />} />
         <Route path="/devices" element={<Devices />} />
         <Route path="/reports" element={<Reports />} />
         <Route path="/me" element={<MyFingerprint />} />
+        <Route path="/admin/seo" element={<AdminSeo />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

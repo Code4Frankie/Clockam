@@ -1,48 +1,25 @@
 import { Router } from 'express';
-import mongoose from 'mongoose';
-import { Attendance } from '../models/Attendance.js';
 import { requireAuth, requireRole } from '../middleware/auth.js';
+import { buildSummary } from '../services/reports.service.js';
 import { asyncHandler, HttpError } from '../utils/http.js';
 
 const router = Router();
 router.use(requireAuth, requireRole('owner', 'admin', 'manager'));
 
-async function buildSummary(req) {
-  const { from, to } = req.query;
-  if (!from || !to) throw new HttpError(400, 'from and to (YYYY-MM-DD) are required');
+const DATE = /^\d{4}-\d{2}-\d{2}$/;
 
-  return Attendance.aggregate([
-    { $match: { organization: new mongoose.Types.ObjectId(req.user.organization), date: { $gte: from, $lte: to } } },
-    {
-      $group: {
-        _id: '$user',
-        daysPresent: { $sum: 1 },
-        daysLate: { $sum: { $cond: [{ $eq: ['$status', 'late'] }, 1, 0] } },
-        minutesWorked: { $sum: '$minutesWorked' },
-      },
-    },
-    { $lookup: { from: 'users', localField: '_id', foreignField: '_id', as: 'user' } },
-    { $unwind: '$user' },
-    {
-      $project: {
-        _id: 0,
-        userId: '$_id',
-        name: '$user.name',
-        staffId: '$user.staffId',
-        department: '$user.department',
-        daysPresent: 1,
-        daysLate: 1,
-        hoursWorked: { $round: [{ $divide: ['$minutesWorked', 60] }, 2] },
-      },
-    },
-    { $sort: { name: 1 } },
-  ]);
+function summaryFor(req) {
+  const { from, to } = req.query;
+  if (typeof from !== 'string' || typeof to !== 'string' || !DATE.test(from) || !DATE.test(to)) {
+    throw new HttpError(400, 'from and to (YYYY-MM-DD) are required');
+  }
+  return buildSummary({ orgId: req.user.organization, from, to });
 }
 
 router.get(
   '/summary',
   asyncHandler(async (req, res) => {
-    res.json(await buildSummary(req));
+    res.json(await summaryFor(req));
   })
 );
 
@@ -51,7 +28,7 @@ const csvCell = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
 router.get(
   '/export.csv',
   asyncHandler(async (req, res) => {
-    const rows = await buildSummary(req);
+    const rows = await summaryFor(req);
     const header = ['Name', 'Staff ID', 'Department', 'Days present', 'Days late', 'Hours worked'];
     const lines = rows.map((r) =>
       [r.name, r.staffId, r.department, r.daysPresent, r.daysLate, r.hoursWorked].map(csvCell).join(',')

@@ -18,7 +18,7 @@ export default function Login() {
     setError('');
     try {
       signIn(await api('/auth/login', { method: 'POST', body: form, auth: false }));
-      navigate('/');
+      navigate('/dashboard');
     } catch (err) {
       setError(err.message);
     } finally {

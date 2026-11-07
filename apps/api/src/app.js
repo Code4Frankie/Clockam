@@ -11,6 +11,8 @@ import deviceRoutes from './routes/devices.routes.js';
 import biometricRoutes from './routes/biometric.routes.js';
 import attendanceRoutes from './routes/attendance.routes.js';
 import reportRoutes from './routes/reports.routes.js';
+import agentRoutes from './routes/agent.routes.js';
+import seoRoutes from './routes/seo.routes.js';
 
 const app = express();
 
@@ -21,7 +23,10 @@ app.use(express.json({ limit: '1mb' }));
 if (env.NODE_ENV !== 'test') app.use(morgan('dev'));
 app.use('/api', rateLimit({ windowMs: 15 * 60 * 1000, limit: 600, standardHeaders: true, legacyHeaders: false }));
 
-app.get('/health', (_req, res) => res.json({ status: 'ok', service: 'ClockAm API' }));
+// Public, non-secret deployment info. The site auditor compares it with the web hostname.
+app.get('/health', (_req, res) =>
+  res.json({ status: 'ok', service: 'ClockAm API', webauthnRpId: env.WEBAUTHN_RP_ID, webauthnOrigin: env.WEBAUTHN_ORIGIN })
+);
 
 app.use('/api/auth', authRoutes);
 app.use('/api/employees', employeeRoutes);
@@ -29,6 +34,8 @@ app.use('/api/devices', deviceRoutes);
 app.use('/api/biometric', biometricRoutes);
 app.use('/api/attendance', attendanceRoutes);
 app.use('/api/reports', reportRoutes);
+app.use('/api/agent', agentRoutes);
+app.use('/api/admin/seo', seoRoutes);
 
 app.use(notFound);
 app.use(errorHandler);

@@ -16,7 +16,7 @@ export default function RegisterOrg() {
     setError('');
     try {
       signIn(await api('/auth/register-org', { method: 'POST', body: form, auth: false }));
-      navigate('/');
+      navigate('/dashboard');
     } catch (err) {
       setError(err.message);
     }

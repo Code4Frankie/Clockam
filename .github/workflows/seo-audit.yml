@@ -1,0 +1,26 @@
+name: ClockAm site audit
+
+# Weekly audit of the live site, plus a manual "Run workflow" button.
+# Add these repository secrets: SEO_BASE_URL (Vercel URL), SEO_API_URL (Render URL), MONGODB_URI (Atlas).
+on:
+  schedule:
+    - cron: '0 5 * * 1' # Mondays 05:00 UTC
+  workflow_dispatch:
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --workspace apps/api
+      - run: npx playwright install --with-deps chromium
+        working-directory: apps/api
+      - run: node apps/api/src/seo/crawl.js --fail-on-high
+        env:
+          SEO_BASE_URL: ${{ secrets.SEO_BASE_URL }}
+          SEO_API_URL: ${{ secrets.SEO_API_URL }}
+          MONGODB_URI: ${{ secrets.MONGODB_URI }}

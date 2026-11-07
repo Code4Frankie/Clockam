@@ -1,4 +1,5 @@
 const BASE = import.meta.env.VITE_API_URL || '/api';
+export const API_BASE = BASE;
 const TOKEN_KEY = 'clockam.token';
 
 export const getToken = () => localStorage.getItem(TOKEN_KEY);
