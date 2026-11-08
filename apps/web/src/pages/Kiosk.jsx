@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { startAuthentication } from '@simplewebauthn/browser';
 import { api, fmtTime } from '../api.js';
 import Logo from '../components/Logo.jsx';
+import { createQueue, classifyFailure, isOfflineFailure } from '../offlineQueue.js';
 
 const CFG_KEY = 'clockam.kiosk';
 const loadCfg = () => {
@@ -30,6 +31,41 @@ export default function Kiosk() {
   const [showCfg, setShowCfg] = useState(false);
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState(null);
+  const queue = useMemo(() => createQueue(), []);
+  const [queued, setQueued] = useState(() => queue.size());
+  const flushing = useRef(false);
+
+  const scannerHeaders = { 'x-device-id': cfg.deviceId, 'x-device-key': cfg.deviceKey };
+
+  // Uploads clock-ins that were saved while the internet was down, oldest first.
+  const flushQueue = useCallback(async () => {
+    if (flushing.current || !queue.size() || !cfg.deviceId) return;
+    flushing.current = true;
+    try {
+      await queue.flush(async (item) => {
+        try {
+          await api('/biometric/scanner/clock', {
+            method: 'POST', auth: false,
+            headers: { 'x-device-id': cfg.deviceId, 'x-device-key': cfg.deviceKey },
+            body: { scannerUserId: item.scannerUserId, occurredAt: item.at },
+          });
+          return 'sent';
+        } catch (e) {
+          return classifyFailure(e);
+        }
+      });
+    } finally {
+      flushing.current = false;
+      setQueued(queue.size());
+    }
+  }, [queue, cfg.deviceId, cfg.deviceKey]);
+
+  useEffect(() => {
+    flushQueue();
+    const t = setInterval(flushQueue, 30000);
+    window.addEventListener('online', flushQueue);
+    return () => { clearInterval(t); window.removeEventListener('online', flushQueue); };
+  }, [flushQueue]);
 
   useEffect(() => {
     const t = setInterval(() => setNow(new Date()), 1000);
@@ -48,14 +84,20 @@ export default function Kiosk() {
   };
 
   const show = (res) =>
-    setResult({
-      ok: true,
-      title: res.action === 'clock-in' ? 'Clocked in' : 'Clocked out',
-      text: `${res.employee.name} · ${fmtTime(res.action === 'clock-in' ? res.record.clockIn : res.record.clockOut)}`,
-      late: res.record.status === 'late' && res.action === 'clock-in',
-    });
+    res.action === 'break-start' || res.action === 'break-end'
+      ? setResult({
+          ok: true,
+          title: res.action === 'break-start' ? 'Break started' : 'Back from break',
+          text: `${res.employee.name} · ${fmtTime(new Date())}`,
+        })
+      : setResult({
+          ok: true,
+          title: res.action === 'clock-in' ? 'Clocked in' : 'Clocked out',
+          text: `${res.employee.name} · ${fmtTime(res.action === 'clock-in' ? res.record.clockIn : res.record.clockOut)}`,
+          late: res.record.status === 'late' && res.action === 'clock-in',
+        });
 
-  async function clockWithDevice(e) {
+  async function clockWithDevice(e, intent = 'clock') {
     e.preventDefault();
     setBusy(true);
     setResult(null);
@@ -64,16 +106,17 @@ export default function Kiosk() {
       const optionsJSON = await api('/biometric/webauthn/login/options', { method: 'POST', body, auth: false });
       const response = await startAuthentication({ optionsJSON });
       const location = await getLocation();
-      show(await api('/biometric/webauthn/login/verify', { method: 'POST', body: { ...body, response, location }, auth: false }));
+      show(await api('/biometric/webauthn/login/verify', { method: 'POST', body: { ...body, response, location, intent }, auth: false }));
       setStaffId('');
     } catch (err) {
-      setResult({ ok: false, title: 'Could not clock', text: err.message });
+      const offline = isOfflineFailure(err) && err.name !== 'NotAllowedError';
+      setResult({ ok: false, title: 'Could not clock', text: offline && !err.status && /fetch|network/i.test(err.message) ? 'No internet. Phone and PC fingerprints need the internet. Use the USB scanner tab, or try again when the connection is back.' : err.message });
     } finally {
       setBusy(false);
     }
   }
 
-  async function clockWithScanner(testId) {
+  async function clockWithScanner(testId, intent = 'clock') {
     setBusy(true);
     setResult(null);
     try {
@@ -85,14 +128,32 @@ export default function Kiosk() {
         scannerUserId = String((await r.json()).scannerUserId ?? '');
         if (!scannerUserId) throw new Error('Finger not recognised. Try again.');
       }
-      show(
-        await api('/biometric/scanner/clock', {
-          method: 'POST',
-          auth: false,
-          headers: { 'x-device-id': cfg.deviceId, 'x-device-key': cfg.deviceKey },
-          body: { scannerUserId },
-        })
-      );
+      const saveForLater = () => {
+        if (!queue.add({ scannerUserId, at: new Date().toISOString() })) {
+          throw new Error('No internet and the saved list is full. Connect to the internet and try again.');
+        }
+        setQueued(queue.size());
+        setResult({ ok: true, title: 'Saved offline', text: 'No internet. Your clock-in is saved on this PC and will upload when the connection is back.' });
+      };
+
+      await flushQueue();
+      if (intent === 'break') {
+        if (queue.size() > 0) throw new Error('Some clock-ins are still waiting to upload. Try the break again in a moment.');
+        try {
+          show(await api('/biometric/scanner/clock', { method: 'POST', auth: false, headers: scannerHeaders, body: { scannerUserId, intent } }));
+        } catch (err) {
+          throw isOfflineFailure(err) ? new Error('No internet. Breaks cannot be saved offline. Try again when the connection is back.') : err;
+        }
+      } else if (queue.size() > 0) {
+        saveForLater(); // older saved clock-ins are still waiting, so this one joins the line to keep the order
+      } else {
+        try {
+          show(await api('/biometric/scanner/clock', { method: 'POST', auth: false, headers: scannerHeaders, body: { scannerUserId } }));
+        } catch (err) {
+          if (!isOfflineFailure(err)) throw err;
+          saveForLater();
+        }
+      }
       setManualId('');
     } catch (err) {
       setResult({ ok: false, title: 'Could not clock', text: err.message });
@@ -117,12 +178,14 @@ export default function Kiosk() {
           <form onSubmit={clockWithDevice}>
             <label>Staff ID<input autoFocus value={staffId} onChange={(e) => setStaffId(e.target.value)} placeholder="Enter your Staff ID" required /></label>
             <button className="btn big" disabled={busy}>{busy ? 'Touch the fingerprint sensor…' : 'Clock in / out'}</button>
+            <button type="button" className="btn ghost" disabled={busy || !staffId.trim()} onClick={(e) => clockWithDevice(e, 'break')}>Start / end break</button>
           </form>
         ) : (
           <>
             <button className="btn big" disabled={busy || !cfg.deviceId} onClick={() => clockWithScanner()}>
               {busy ? 'Place finger on scanner…' : 'Scan fingerprint'}
             </button>
+            <button className="btn ghost" disabled={busy || !cfg.deviceId} onClick={() => clockWithScanner(undefined, 'break')}>Start / end break</button>
             {!cfg.deviceId && <p className="muted">Open “Scanner settings” and enter this kiosk’s device ID and key first.</p>}
             <button className="link" onClick={() => setShowCfg(!showCfg)}>Scanner settings</button>
             {showCfg && (
@@ -141,6 +204,13 @@ export default function Kiosk() {
           </>
         )}
       </div>
+
+      {queued > 0 && (
+        <div className="card notice" role="status">
+          <b>{queued} clock-in{queued === 1 ? '' : 's'} waiting to upload.</b> They keep their real time and upload on their own when the internet is back.
+          <button className="btn small ghost" onClick={flushQueue}>Upload now</button>
+        </div>
+      )}
 
       {result && (
         <div className={`kiosk-result ${result.ok ? (result.late ? 'late' : 'ok') : 'bad'}`}>

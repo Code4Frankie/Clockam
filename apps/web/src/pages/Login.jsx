@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../api.js';
 import { useAuth } from '../auth.jsx';
 import Logo from '../components/Logo.jsx';
+import PasswordInput from '../components/PasswordInput.jsx';
 
 export default function Login() {
   const [form, setForm] = useState({ orgSlug: '', email: '', password: '' });
@@ -33,9 +34,10 @@ export default function Login() {
         <h2>Sign in</h2>
         <label>Workplace ID<input value={form.orgSlug} onChange={set('orgSlug')} placeholder="e.g. frankiecode" required /></label>
         <label>Email<input type="email" value={form.email} onChange={set('email')} required /></label>
-        <label>Password<input type="password" value={form.password} onChange={set('password')} required /></label>
+        <label>Password<PasswordInput value={form.password} onChange={set('password')} required /></label>
         {error && <p className="error">{error}</p>}
         <button className="btn" disabled={busy}>{busy ? 'Signing in…' : 'Sign in'}</button>
+        <p className="muted"><Link to="/forgot-password">Forgot your password?</Link></p>
         <p className="muted">New workplace? <Link to="/register">Create one</Link></p>
       </form>
     </div>

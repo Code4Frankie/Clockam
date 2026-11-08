@@ -31,10 +31,10 @@ export default function Reports() {
       {rows && (
         <div className="card">
           <table>
-            <thead><tr><th>Name</th><th>Staff ID</th><th>Dept</th><th>Days present</th><th>Days late</th><th>Hours</th></tr></thead>
+            <thead><tr><th>Name</th><th>Staff ID</th><th>Dept</th><th>Days present</th><th>Days late</th><th>Hours</th><th>Break min</th></tr></thead>
             <tbody>
               {rows.map((r) => (
-                <tr key={r.userId}><td>{r.name}</td><td>{r.staffId}</td><td>{r.department || '—'}</td><td>{r.daysPresent}</td><td>{r.daysLate}</td><td>{r.hoursWorked}</td></tr>
+                <tr key={r.userId}><td>{r.name}</td><td>{r.staffId}</td><td>{r.department || '—'}</td><td>{r.daysPresent}</td><td>{r.daysLate}</td><td>{r.hoursWorked}</td><td>{r.breakMinutes ?? 0}</td></tr>
               ))}
               {!rows.length && <tr><td colSpan="6" className="muted">No records in this period.</td></tr>}
             </tbody>

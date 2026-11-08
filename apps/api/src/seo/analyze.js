@@ -1,6 +1,6 @@
 // Pure page analysis (no network, no database) so issue detection can be unit tested with fixture HTML.
 
-export const PUBLIC_PATHS = new Set(['/', '/login', '/register']);
+export const PUBLIC_PATHS = new Set(['/', '/privacy', '/terms', '/login', '/register']);
 
 // Everything that is not an explicitly public page (dashboard, kiosk, admin screens) must not be indexed.
 export const classifyPath = (pathname) => (PUBLIC_PATHS.has(pathname.replace(/\/+$/, '') || '/') ? 'public' : 'private');

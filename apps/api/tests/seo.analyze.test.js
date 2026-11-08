@@ -119,6 +119,8 @@ test('parseSitemap and classifyPath', () => {
   assert.equal(classifyPath('/register/'), 'public');
   assert.equal(classifyPath('/'), 'public');
   assert.equal(classifyPath('/dashboard'), 'private');
+  assert.equal(classifyPath('/privacy'), 'public');
+  assert.equal(classifyPath('/terms/'), 'public');
   assert.equal(classifyPath('/kiosk/acme'), 'private');
   assert.equal(classifyPath('/employees'), 'private');
 });

@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../api.js';
 import { useAuth } from '../auth.jsx';
 import Logo from '../components/Logo.jsx';
+import PasswordInput from '../components/PasswordInput.jsx';
 
 export default function RegisterOrg() {
   const [form, setForm] = useState({ organizationName: '', name: '', email: '', password: '', timezone: 'Africa/Lagos' });
@@ -30,7 +31,7 @@ export default function RegisterOrg() {
         <label>Workplace name<input value={form.organizationName} onChange={set('organizationName')} required /></label>
         <label>Your name<input value={form.name} onChange={set('name')} required /></label>
         <label>Email<input type="email" value={form.email} onChange={set('email')} required /></label>
-        <label>Password (8+ characters)<input type="password" minLength={8} value={form.password} onChange={set('password')} required /></label>
+        <label>Password (8+ characters)<PasswordInput minLength={8} value={form.password} onChange={set('password')} required /></label>
         {error && <p className="error">{error}</p>}
         <button className="btn">Create workplace</button>
         <p className="muted">Already registered? <Link to="/login">Sign in</Link></p>

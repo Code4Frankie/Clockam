@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api } from '../api.js';
 import { useAuth } from '../auth.jsx';
+import PasswordInput from '../components/PasswordInput.jsx';
 
 const empty = { name: '', email: '', staffId: '', department: '', phone: '', role: 'employee', password: '' };
 
@@ -10,6 +11,9 @@ export default function Employees() {
   const [list, setList] = useState([]);
   const [form, setForm] = useState(empty);
   const [error, setError] = useState('');
+  const [resetFor, setResetFor] = useState(null);
+  const [newPw, setNewPw] = useState('');
+  const [notice, setNotice] = useState('');
   const set = (k) => (e) => setForm({ ...form, [k]: e.target.value });
 
   const load = () => api('/employees').then(setList).catch((e) => setError(e.message));
@@ -25,9 +29,23 @@ export default function Employees() {
     } catch (err) { setError(err.message); }
   }
 
-  const toggle = (u) => api(`/employees/${u._id}`, { method: 'PATCH', body: { active: !u.active } }).then(load);
+  const guard = (p) => p.catch((e) => setError(e.message));
+  const toggle = (u) => guard(api(`/employees/${u._id}`, { method: 'PATCH', body: { active: !u.active } }).then(load));
   const clearPrints = (u) =>
-    confirm(`Remove all fingerprints for ${u.name}?`) && api(`/employees/${u._id}/fingerprints`, { method: 'DELETE' }).then(load);
+    confirm(`Remove all fingerprints for ${u.name}?`) && guard(api(`/employees/${u._id}/fingerprints`, { method: 'DELETE' }).then(load));
+  // The owner can only be changed by themselves, and only the owner can change admins.
+  const canManage = (u) => canEdit && u.role !== 'owner' && (user.role === 'owner' || u.role !== 'admin');
+
+  async function savePassword(e, u) {
+    e.preventDefault();
+    setError('');
+    try {
+      const r = await api(`/employees/${u._id}/reset-password`, { method: 'POST', body: { password: newPw } });
+      setNotice(r.message);
+      setResetFor(null);
+      setNewPw('');
+    } catch (err) { setError(err.message); }
+  }
 
   return (
     <>
@@ -44,26 +62,40 @@ export default function Employees() {
             <option value="manager">Manager</option>
             {user.role === 'owner' && <option value="admin">Admin</option>}
           </select>
-          <input type="password" minLength={8} placeholder="Temporary password" value={form.password} onChange={set('password')} required />
+          <PasswordInput minLength={8} placeholder="Temporary password" label="Show password" value={form.password} onChange={set('password')} required />
           <button className="btn">Add employee</button>
         </form>
       )}
       {error && <p className="error">{error}</p>}
+      {notice && <p className="success" role="status">{notice}</p>}
       <div className="card">
         <table>
           <thead><tr><th>Name</th><th>Staff ID</th><th>Dept</th><th>Role</th><th>Fingerprints</th><th></th></tr></thead>
           <tbody>
-            {list.map((u) => (
+            {list.map((u) => [
               <tr key={u._id} className={u.active ? '' : 'dim'}>
                 <td>{u.name}<br /><small className="muted">{u.email}</small></td>
                 <td>{u.staffId}</td><td>{u.department || '—'}</td><td>{u.role}</td>
                 <td>{u.webauthnCredentials.length} phone/PC · {u.scannerLinks.length} scanner</td>
                 <td className="actions">
-                  {canEdit && <button className="btn small ghost" onClick={() => toggle(u)}>{u.active ? 'Disable' : 'Enable'}</button>}
-                  {canEdit && <button className="btn small ghost" onClick={() => clearPrints(u)}>Reset prints</button>}
+                  {canManage(u) && <button className="btn small ghost" onClick={() => toggle(u)}>{u.active ? 'Disable' : 'Enable'}</button>}
+                  {canManage(u) && <button className="btn small ghost" onClick={() => clearPrints(u)}>Reset prints</button>}
+                  {canManage(u) && <button className="btn small ghost" onClick={() => { setResetFor(resetFor === u._id ? null : u._id); setNewPw(''); setNotice(''); }}>Set password</button>}
                 </td>
-              </tr>
-            ))}
+              </tr>,
+              resetFor === u._id && (
+                <tr key={`${u._id}-pw`}>
+                  <td colSpan={6}>
+                    <form className="row" onSubmit={(e) => savePassword(e, u)}>
+                      <PasswordInput minLength={8} placeholder={`New password for ${u.name}`} label="Show password" value={newPw} onChange={(e) => setNewPw(e.target.value)} required autoFocus />
+                      <button className="btn small">Save password</button>
+                      <button type="button" className="btn small ghost" onClick={() => setResetFor(null)}>Cancel</button>
+                    </form>
+                    <small className="muted">They will be signed out everywhere. Tell them the new password privately.</small>
+                  </td>
+                </tr>
+              ),
+            ])}
           </tbody>
         </table>
       </div>

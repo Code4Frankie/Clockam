@@ -11,6 +11,12 @@ import Reports from './pages/Reports.jsx';
 import MyFingerprint from './pages/MyFingerprint.jsx';
 import Kiosk from './pages/Kiosk.jsx';
 import AdminSeo from './pages/AdminSeo.jsx';
+import Settings from './pages/Settings.jsx';
+import Corrections from './pages/Corrections.jsx';
+import ForgotPassword from './pages/ForgotPassword.jsx';
+import ResetPassword from './pages/ResetPassword.jsx';
+import { Privacy, Terms } from './pages/Legal.jsx';
+import EditAttendance from './pages/EditAttendance.jsx';
 import Landing from './pages/Landing.jsx';
 
 function Protected({ children }) {
@@ -28,7 +34,11 @@ export default function App() {
   return (
     <Routes>
       <Route path="/" element={<Landing />} />
+      <Route path="/privacy" element={<Privacy />} />
+      <Route path="/terms" element={<Terms />} />
       <Route path="/login" element={<Login />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/register" element={<RegisterOrg />} />
       <Route path="/kiosk/:orgSlug" element={<Kiosk />} />
       <Route element={<Protected><Layout /></Protected>}>
@@ -37,6 +47,9 @@ export default function App() {
         <Route path="/devices" element={<Devices />} />
         <Route path="/reports" element={<Reports />} />
         <Route path="/me" element={<MyFingerprint />} />
+        <Route path="/edit-attendance" element={<EditAttendance />} />
+        <Route path="/corrections" element={<Corrections />} />
+        <Route path="/settings" element={<Settings />} />
         <Route path="/admin/seo" element={<AdminSeo />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />

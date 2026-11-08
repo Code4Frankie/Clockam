@@ -18,6 +18,9 @@ export default function Layout() {
           {isManager && <NavLink to="/employees">Employees</NavLink>}
           {isAdmin && <NavLink to="/devices">Scanners</NavLink>}
           {isManager && <NavLink to="/reports">Reports</NavLink>}
+          {isAdmin && <NavLink to="/edit-attendance">Edit attendance</NavLink>}
+          {isAdmin && <NavLink to="/corrections">Missed clock-outs</NavLink>}
+          {isAdmin && <NavLink to="/settings">Work hours &amp; location</NavLink>}
           <NavLink to="/me">My fingerprint</NavLink>
           {user.isPlatformAdmin && <NavLink to="/admin/seo">Site audit</NavLink>}
           <a href={`/kiosk/${organization?.slug}`} target="_blank" rel="noreferrer">Open kiosk ↗</a>

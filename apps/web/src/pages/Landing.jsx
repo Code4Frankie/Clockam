@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import { useAuth } from '../auth.jsx';
+import SiteFooter from '../components/SiteFooter.jsx';
 import './landing.css';
 
 const ICONS = {
@@ -110,7 +111,7 @@ const FAQ = [
   },
   {
     q: 'What if someone forgets to clock out?',
-    a: 'An admin can correct the record. You can also ask the assistant to find missing clock-outs; it prepares each fix and waits for you to confirm.',
+    a: 'An admin can set the time on the Edit attendance page, and every change is saved with a reason. You can also turn on automatic closing, so a day left open is closed at closing time and marked automatic.',
   },
   {
     q: 'Who builds ClockAm?',
@@ -412,23 +413,7 @@ export default function Landing() {
         </section>
       </main>
 
-      <footer className="lp-footer">
-        <div className="lp-wrap lp-foot">
-          <div className="lp-foot-brand">
-            <img src="/logo.png" alt="" width="64" height="64" />
-            <div>
-              <strong>ClockAm by Frankiecode Solutions</strong>
-              <a href="https://www.frankiecode.org.ng" target="_blank" rel="noopener noreferrer">www.frankiecode.org.ng</a>
-            </div>
-          </div>
-          <nav className="lp-foot-links" aria-label="Footer">
-            <Link to="/login">Sign in</Link>
-            <Link to="/register">Create your workplace</Link>
-            <button type="button" className="lp-linkbtn" onClick={() => setSoon(true)}>Download the app</button>
-          </nav>
-        </div>
-        <p className="lp-wrap lp-legal">© {new Date().getFullYear()} Frankiecode Solutions. Photos and screens on this page are illustrations.</p>
-      </footer>
+      <SiteFooter extra={<button type="button" className="lp-linkbtn" onClick={() => setSoon(true)}>Download the app</button>} />
       <ComingSoon open={soon} onClose={() => setSoon(false)} />
     </div>
   );

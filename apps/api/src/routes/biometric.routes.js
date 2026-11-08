@@ -13,6 +13,9 @@ import { User } from '../models/User.js';
 import { requireAuth, requireDevice } from '../middleware/auth.js';
 import { validate } from '../middleware/validate.js';
 import { clockUser } from '../services/clock.service.js';
+import { toggleBreak } from '../services/break.service.js';
+import { applyPunch } from '../services/punch.service.js';
+import { acceptOccurredAt } from '../utils/punch.js';
 import { asyncHandler, HttpError } from '../utils/http.js';
 
 const router = Router();
@@ -115,7 +118,7 @@ router.post(
 router.post(
   '/webauthn/login/verify',
   kioskLimiter,
-  validate(identifySchema.extend({ response: z.any(), location: z.object({ lat: z.number(), lng: z.number() }).optional() })),
+  validate(identifySchema.extend({ response: z.any(), location: z.object({ lat: z.number(), lng: z.number() }).optional(), intent: z.enum(['clock', 'break']).default('clock') })),
   asyncHandler(async (req, res) => {
     const { org, user } = await findKioskUser(req.body.orgSlug, req.body.staffId);
     const cred = user.webauthnCredentials.find((c) => c.credentialId === req.body.response?.id);
@@ -142,7 +145,8 @@ router.post(
     user.currentChallenge = undefined;
     await user.save();
 
-    const result = await clockUser({ user, org, method: 'webauthn', location: req.body.location });
+    const act = req.body.intent === 'break' ? toggleBreak : clockUser;
+    const result = await act({ user, org, method: 'webauthn', location: req.body.location });
     res.json({ ...result, employee: { name: user.name, staffId: user.staffId } });
   })
 );
@@ -155,7 +159,7 @@ router.post(
 router.post(
   '/scanner/clock',
   requireDevice,
-  validate(z.object({ scannerUserId: z.string().min(1) })),
+  validate(z.object({ scannerUserId: z.string().min(1), occurredAt: z.string().max(40).optional(), intent: z.enum(['clock', 'break']).default('clock') })),
   asyncHandler(async (req, res) => {
     const user = await User.findOne({
       organization: req.device.organization,
@@ -165,8 +169,24 @@ router.post(
     if (!user) throw new HttpError(404, 'This fingerprint is not linked to an employee on this device');
 
     const org = await Organization.findById(req.device.organization);
+    const employee = { name: user.name, staffId: user.staffId };
+
+    if (req.body.intent === 'break') {
+      if (req.body.occurredAt) throw new HttpError(400, 'Breaks cannot be saved offline');
+      const result = await toggleBreak({ user, org, method: 'scanner' });
+      return res.json({ ...result, employee });
+    }
+
+    // A kiosk that was offline uploads punches with the time they really happened.
+    if (req.body.occurredAt) {
+      const at = acceptOccurredAt(req.body.occurredAt);
+      if (!at) throw new HttpError(400, 'This saved clock-in is too old or has an invalid time');
+      const result = await applyPunch({ user, org, device: req.device, at, method: 'scanner' });
+      return res.json({ ...result, employee });
+    }
+
     const result = await clockUser({ user, org, method: 'scanner', device: req.device });
-    res.json({ ...result, employee: { name: user.name, staffId: user.staffId } });
+    res.json({ ...result, employee });
   })
 );
 

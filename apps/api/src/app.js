@@ -11,6 +11,8 @@ import deviceRoutes from './routes/devices.routes.js';
 import biometricRoutes from './routes/biometric.routes.js';
 import attendanceRoutes from './routes/attendance.routes.js';
 import reportRoutes from './routes/reports.routes.js';
+import zktecoRoutes from './routes/zkteco.routes.js';
+import organizationRoutes from './routes/organization.routes.js';
 import agentRoutes from './routes/agent.routes.js';
 import seoRoutes from './routes/seo.routes.js';
 
@@ -34,6 +36,8 @@ app.use('/api/devices', deviceRoutes);
 app.use('/api/biometric', biometricRoutes);
 app.use('/api/attendance', attendanceRoutes);
 app.use('/api/reports', reportRoutes);
+app.use('/api/organization', organizationRoutes);
+app.use('/iclock', zktecoRoutes);
 app.use('/api/agent', agentRoutes);
 app.use('/api/admin/seo', seoRoutes);
 

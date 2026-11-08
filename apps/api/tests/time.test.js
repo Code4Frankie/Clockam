@@ -18,3 +18,12 @@ test('formatLocal and localParts agree with the workplace timezone', () => {
   assert.deepEqual(localParts(d, 'Africa/Lagos'), { dateKey: '2026-11-05', minutes: 17 * 60 });
   assert.equal(formatLocal(null, 'Africa/Lagos'), null);
 });
+
+import { clockoutAfter } from '../src/utils/time.js';
+
+test('clockoutAfter converts local time and rejects times not after the clock-in', () => {
+  const clockIn = new Date('2026-11-06T07:00:00Z'); // 08:00 in Lagos
+  assert.equal(clockoutAfter('2026-11-06', '17:00', 'Africa/Lagos', clockIn).toISOString(), '2026-11-06T16:00:00.000Z');
+  assert.equal(clockoutAfter('2026-11-06', '08:00', 'Africa/Lagos', clockIn), null);
+  assert.equal(clockoutAfter('2026-11-06', '07:30', 'Africa/Lagos', clockIn), null);
+});

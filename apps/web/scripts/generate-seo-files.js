@@ -11,7 +11,7 @@ const robots = ['User-agent: *', 'Allow: /', ...(site ? [`Sitemap: ${site}/sitem
 writeFileSync('public/robots.txt', robots);
 
 if (site) {
-  const urls = ['/', '/login', '/register'].map((p) => `  <url><loc>${site}${p}</loc></url>`).join('\n');
+  const urls = ['/', '/privacy', '/terms', '/login', '/register'].map((p) => `  <url><loc>${site}${p}</loc></url>`).join('\n');
   writeFileSync('public/sitemap.xml', `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls}\n</urlset>\n`);
   console.log(`Wrote robots.txt and sitemap.xml for ${site}`);
 } else {

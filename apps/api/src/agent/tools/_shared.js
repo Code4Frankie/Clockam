@@ -8,6 +8,7 @@ export const attendanceRow = (r) => ({
   status: r.status,
   method: r.method,
   minutesWorked: r.minutesWorked ?? 0,
+  breakMinutes: r.breakMinutes ?? 0,
 });
 
 export const personRow = (u) => ({ id: String(u._id), name: u.name, staffId: u.staffId, department: u.department || null });

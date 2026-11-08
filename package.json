@@ -4,7 +4,9 @@
   "private": true,
   "description": "ClockAm - biometric clock-in and attendance platform by Frankiecode Solutions",
   "workspaces": [
-    "apps/*"
+    "apps/api",
+    "apps/web",
+    "apps/bridge"
   ],
   "scripts": {
     "dev:api": "npm run dev -w apps/api",
@@ -12,6 +14,8 @@
     "start:api": "npm run start -w apps/api",
     "build:web": "npm run build -w apps/web",
     "test:api": "npm run test -w apps/api",
-    "seo:crawl": "npm run seo:crawl -w apps/api"
+    "seo:crawl": "npm run seo:crawl -w apps/api",
+    "start:bridge": "npm run start -w apps/bridge",
+    "test:bridge": "npm run test -w apps/bridge"
   }
 }

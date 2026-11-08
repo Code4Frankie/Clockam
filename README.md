@@ -15,12 +15,13 @@ clockam/
 | Capture method | Where it runs | How ClockAm verifies it |
 |---|---|---|
 | **WebAuthn** (phone sensor, Windows Hello, FIDO2 USB fingerprint key) | Browser on kiosk PC, phone or laptop | The device verifies the finger and signs a challenge. The API stores only a public key, never a fingerprint. |
-| **USB / handheld scanner** (ZKTeco, SecuGen, DigitalPersona, etc.) | Scanner plus a small local "bridge" service on the PC | The scanner matches the finger and reports its own user ID. The kiosk sends that ID to the API with the device key. |
+| **USB scanner** (SecuGen Hamster, DigitalPersona via a helper) | Reader plus the small `apps/bridge` program on the front-desk PC | The bridge matches the finger against templates stored on that PC and reports a scanner user ID. The kiosk sends that ID to the API with the device key. Fingerprints never reach the server. |
+| **ZKTeco standalone unit** (LX15) | The unit itself, pushing to `/iclock/*` | The unit matches the finger and pushes its punches. Off by default (`ZKTECO_PUSH_ENABLED`). The unit is identified only by its serial number, so anyone who knows it could send fake punches. Not confirmed on a real LX15. |
 | **Mobile app** | Phone | The phone's biometric prompt unlocks the app; the app calls `POST /api/attendance/clock` with the employee's login token and GPS. |
 
-Browsers cannot talk to a USB fingerprint reader directly. For plain USB readers you need the vendor's local bridge/SDK.
-The kiosk expects the bridge to answer `POST {bridgeUrl}/identify` with `{ "scannerUserId": "12" }` (and to allow CORS
-from the kiosk origin). A thin bridge for your specific scanner model is the next piece to build.
+Browsers cannot talk to a USB fingerprint reader directly, so the kiosk calls `POST {bridgeUrl}/identify` on the bridge and
+gets `{ "scannerUserId": "12" }` back. See `apps/bridge/README.md` for what is built and tested (SecuGen driver, helper-program
+driver, simulator) and what is not (DigitalPersona helper, real-hardware testing).
 
 ## Run locally (Windows, VS Code terminal)
 
@@ -79,7 +80,7 @@ geofence, then `POST /api/attendance/clock`; history from `/api/attendance/me`. 
 
 ## Known gaps / roadmap
 
-- Scanner bridge for specific hardware models.
+- Real-hardware testing of the SecuGen driver and the ZKTeco receiver; the DigitalPersona helper program; Futronic driver.
 - Refresh tokens, password reset, email/SMS notifications.
 - Shifts per employee, leave management, offline queue in the mobile app.
 - Automated tests (Vitest + Supertest).
@@ -167,3 +168,17 @@ by every query filtering on the signed-in user's workplace, but no automated tes
 - Answers appear one step at a time, not word by word.
 - A confirmation is used up when pressed. If the action then fails, ask the assistant again.
 - The mobile app will need a non-streaming mode (`?stream=false`) or an SSE helper, because React Native does not stream `fetch` bodies.
+
+## Small features added later
+
+- **Missed clock-outs** (owner/admin): sidebar page listing days with a clock-in and no clock-out, with a suggested closing-time clock-out you can edit and save.
+- **Password reset**: admins can always set a temporary password from the Employees page. Emailed reset links work once `MAIL_PROVIDER=resend`, `RESEND_API_KEY`, `MAIL_FROM` and `WEB_APP_URL` are set in Render. Until then the forgot-password page tells people to ask their admin. Changing a password signs out every other session. Only the owner can change admins; nobody can change the owner from the Employees page.
+- **Offline clock-in (USB scanner tab only)**: if the internet is down, the kiosk saves scans on that PC with their real time and uploads them in order when it is back (up to 200, nothing older than 48 hours is accepted). Phone and PC fingerprint clock-in cannot work offline, because the server must issue a fresh challenge for every fingerprint.
+- **Privacy and terms pages** at `/privacy` and `/terms`. They are written in plain language from what the software really does, but they are **not legal advice**. Have a Nigerian lawyer review them before you charge customers.
+
+## Edit attendance, automatic clock-out and breaks
+
+- **Edit attendance** (owner/admin): pick a person and a day, set the clock-in and clock-out as local times, and give a reason. Late or on time is worked out from the work hours; you cannot type a status in. Every change is kept on the day with who made it, why, and the old and new times. Future days are refused. Admins can edit their own days too, and it shows in the history.
+- **Automatic clock-out** (Work hours & location page): choose how many hours after closing time a day left open is closed. The clock-out is recorded at the closing time, marked `auto`, and can be corrected on Edit attendance. The sweep runs every 10 minutes while the API is awake and whenever someone opens attendance or reports (at most every 5 minutes per workplace), because a sleeping Render plan cannot run a timer reliably.
+- **Breaks**: staff start and end a break from the kiosk (both tabs) or the mobile app. Breaks are unpaid and subtracted from hours worked, up to 10 per day. A break left open is ended when the day closes. Breaks need the internet (they are not saved offline). Reports and the CSV show break minutes. Phone and PC fingerprint breaks use the same biometric check as clocking in.
+- Reports CSV: names that start with `=`, `+`, `-` or `@` are prefixed so spreadsheets do not run them as formulas.

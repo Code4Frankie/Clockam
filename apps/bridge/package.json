@@ -1,0 +1,12 @@
+{
+  "name": "@clockam/bridge",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "ClockAm scanner bridge: lets the kiosk page talk to a USB fingerprint reader on the front-desk PC.",
+  "scripts": {
+    "start": "node src/index.js",
+    "test": "node --test"
+  },
+  "engines": { "node": ">=20" }
+}

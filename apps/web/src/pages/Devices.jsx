@@ -1,10 +1,13 @@
 import { useEffect, useState } from 'react';
-import { api } from '../api.js';
+import { api, API_BASE } from '../api.js';
 
 export default function Devices() {
   const [devices, setDevices] = useState([]);
   const [employees, setEmployees] = useState([]);
   const [name, setName] = useState('');
+  const [type, setType] = useState('scanner');
+  const [serial, setSerial] = useState('');
+  const [error, setError] = useState('');
   const [created, setCreated] = useState(null);
   const [link, setLink] = useState({ deviceId: '', userId: '', scannerUserId: '' });
   const [msg, setMsg] = useState('');
@@ -17,9 +20,17 @@ export default function Devices() {
 
   async function register(e) {
     e.preventDefault();
-    setCreated(await api('/devices', { method: 'POST', body: { name, type: 'scanner' } }));
-    setName('');
-    load();
+    setError('');
+    try {
+      const body = { name, type, ...(type === 'zkteco' ? { serialNumber: serial.trim() } : {}) };
+      setCreated(await api('/devices', { method: 'POST', body }));
+      setName('');
+      setSerial('');
+      load();
+    } catch (err) {
+      const d = err.details && typeof err.details === 'object' && Object.values(err.details).flat()[0];
+      setError(d || err.message);
+    }
   }
 
   async function linkEmployee(e) {
@@ -43,10 +54,23 @@ export default function Devices() {
 
       <form className="card row" onSubmit={register}>
         <input placeholder="Device name (e.g. Front desk scanner)" value={name} onChange={(e) => setName(e.target.value)} required />
+        <select value={type} onChange={(e) => setType(e.target.value)} aria-label="Device type">
+          <option value="scanner">USB scanner with bridge</option>
+          <option value="zkteco">ZKTeco unit (standalone)</option>
+        </select>
+        {type === 'zkteco' && <input placeholder="Unit serial number" value={serial} onChange={(e) => setSerial(e.target.value)} required />}
         <button className="btn">Register device</button>
       </form>
+      {error && <p className="error">{error}</p>}
 
-      {created && (
+      {created && created.type === 'zkteco' && (
+        <div className="card notice">
+          <b>{created.name} is registered. Now set the unit up.</b>
+          <p>On the unit, open the cloud server (ADMS) settings and enter this server address: <code>{new URL(API_BASE, window.location.origin).host}</code></p>
+          <p className="muted">Then link each person below, using the PIN the unit shows for them as the “User ID on the scanner”. Last punch of the day counts as clock-out.</p>
+        </div>
+      )}
+      {created && created.apiKey && (
         <div className="card notice">
           <b>Save these now — the key is shown only once.</b>
           <p>Device ID: <code>{created.id}</code></p>
@@ -57,11 +81,11 @@ export default function Devices() {
 
       <div className="card">
         <table>
-          <thead><tr><th>Name</th><th>Device ID</th><th>Last seen</th><th>Active</th></tr></thead>
+          <thead><tr><th>Name</th><th>Type</th><th>Device ID</th><th>Last seen</th><th>Active</th></tr></thead>
           <tbody>
             {devices.map((d) => (
               <tr key={d._id}>
-                <td>{d.name}</td><td><code>{d._id}</code></td>
+                <td>{d.name}</td><td>{d.type === 'zkteco' ? `ZKTeco ${d.serialNumber || ''}` : d.type}</td><td><code>{d._id}</code></td>
                 <td>{d.lastSeenAt ? new Date(d.lastSeenAt).toLocaleString() : 'never'}</td>
                 <td>{d.active ? 'Yes' : 'No'}</td>
               </tr>
