@@ -13,6 +13,7 @@ import Kiosk from './pages/Kiosk.jsx';
 import AdminSeo from './pages/AdminSeo.jsx';
 import Settings from './pages/Settings.jsx';
 import Corrections from './pages/Corrections.jsx';
+import ForgotWorkplace from './pages/ForgotWorkplace.jsx';
 import ForgotPassword from './pages/ForgotPassword.jsx';
 import ResetPassword from './pages/ResetPassword.jsx';
 import { Privacy, Terms } from './pages/Legal.jsx';
@@ -47,6 +48,7 @@ export default function App() {
       <Route path="/privacy" element={<Privacy />} />
       <Route path="/terms" element={<Terms />} />
       <Route path="/login" element={<Login />} />
+      <Route path="/forgot-workplace" element={<ForgotWorkplace />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/register" element={<RegisterOrg />} />

@@ -38,7 +38,7 @@ export default function Login() {
         <label>Password<PasswordInput value={form.password} onChange={set('password')} required /></label>
         {error && <p className="error">{error}</p>}
         <button className="btn" disabled={busy}>{busy ? 'Signing in…' : 'Sign in'}</button>
-        <p className="muted"><Link to="/forgot-password">Forgot your password?</Link></p>
+        <p className="muted"><Link to="/forgot-password">Forgot your password?</Link> · <Link to="/forgot-workplace">Forgot your Workplace ID?</Link></p>
         <p className="muted">New workplace? <Link to="/register">Create one</Link></p>
       </form>
     </div>

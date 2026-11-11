@@ -175,11 +175,11 @@ export default function Landing() {
                 h={1086}
                 priority
               />
-              <div className="lp-scan" role="img" aria-label={`Sample confirmation: Chidinma A. clocked in at ${time}`}>
+              <div className="lp-scan" role="img" aria-label={`Sample confirmation: Nancy A. clocked in at ${time}`}>
                 <span className="lp-tick"><Icon name="check" /></span>
                 <span>
                   <b>Clocked in</b>
-                  <span className="lp-scan-meta">Chidinma A. at <time>{time}</time></span>
+                  <span className="lp-scan-meta">Nancy A. at <time>{time}</time></span>
                   <small>Sample screen</small>
                 </span>
               </div>
@@ -214,10 +214,10 @@ export default function Landing() {
                     <div><b className="bad">5</b><span>Not in yet</span></div>
                   </div>
                   <ul className="lp-dash-rows">
-                    <li><span>Tunde B.</span><time>07:52</time><em className="ok">On time</em></li>
-                    <li><span>Amaka O.</span><time>08:21</time><em className="warn">Late</em></li>
-                    <li><span>Ibrahim S.</span><time>07:58</time><em className="ok">On time</em></li>
-                    <li><span>Ngozi E.</span><time>08:34</time><em className="warn">Late</em></li>
+                    <li><span>Femi Obialor</span><time>07:52</time><em className="ok">On time</em></li>
+                    <li><span>Wuese&apos;Un Ahile</span><time>08:21</time><em className="warn">Late</em></li>
+                    <li><span>Ibrahim Etim</span><time>07:58</time><em className="ok">On time</em></li>
+                    <li><span>Essla Muemue</span><time>08:34</time><em className="warn">Late</em></li>
                   </ul>
                   <p className="lp-sample">Sample data</p>
                 </div>

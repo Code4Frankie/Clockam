@@ -185,6 +185,15 @@
           "value": "noindex, nofollow"
         }
       ]
+    },
+    {
+      "source": "/forgot-workplace",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
+        }
+      ]
     }
   ]
 }

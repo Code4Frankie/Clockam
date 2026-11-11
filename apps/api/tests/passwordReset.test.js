@@ -48,3 +48,14 @@ test('admins cannot touch the owner or other admins, and cannot promote to admin
   assert.equal(whyCannotEdit('admin', { role: 'employee' }, { role: 'manager' }), null);
   assert.equal(whyCannotEdit('owner', { role: 'admin' }), null);
 });
+
+import { workplaceIdEmail } from '../src/utils/passwordReset.js';
+
+test('workplace ID email lists each workplace and escapes names', () => {
+  const m = workplaceIdEmail({ name: 'Ada <b>', workplaces: [{ name: 'Acme & Sons', slug: 'acme' }, { name: 'Test School', slug: 'test-school' }] });
+  assert.match(m.text, /Acme & Sons: acme/);
+  assert.match(m.text, /Test School: test-school/);
+  assert.ok(!m.html.includes('<b>'), 'name is escaped in html');
+  assert.match(m.html, /Acme &amp; Sons/);
+  assert.match(m.subject, /Workplace ID/);
+});

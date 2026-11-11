@@ -9,7 +9,7 @@ import { validate } from '../middleware/validate.js';
 import { asyncHandler, HttpError } from '../utils/http.js';
 import { env } from '../config/env.js';
 import { PasswordReset } from '../models/PasswordReset.js';
-import { hashToken, newResetToken, resetEmail, resetExpiry, RESET_MINUTES } from '../utils/passwordReset.js';
+import { hashToken, newResetToken, resetEmail, workplaceIdEmail, resetExpiry, RESET_MINUTES } from '../utils/passwordReset.js';
 import { mailConfigured, sendMail } from '../utils/mailer.js';
 import { isPlatformAdmin } from '../middleware/platformAdmin.js';
 
@@ -117,6 +117,28 @@ router.post(
       }
     }
     res.json({ message: 'If that workplace and email exist, we have sent a reset link. It expires in 30 minutes.' });
+  })
+);
+
+// Forgot the Workplace ID: we email it to the address. The answer is the same whether or not the address is known.
+router.post(
+  '/forgot-workplace',
+  resetLimiter,
+  validate(z.object({ email: z.string().email() })),
+  asyncHandler(async (req, res) => {
+    if (!mailConfigured(env.mail)) {
+      throw new HttpError(503, 'Email is not set up yet. Ask your workplace owner or admin: the Workplace ID is at the bottom of their menu.');
+    }
+    const users = await User.find({ email: req.body.email.toLowerCase(), active: true, role: { $ne: 'student' } }).populate('organization', 'name slug').limit(10);
+    const workplaces = users.map((u) => u.organization).filter(Boolean).map((o) => ({ name: o.name, slug: o.slug }));
+    if (workplaces.length) {
+      try {
+        await sendMail(env.mail, { to: req.body.email.toLowerCase(), ...workplaceIdEmail({ name: users[0].name, workplaces }) });
+      } catch (e) {
+        console.error('Workplace ID email failed:', e.message);
+      }
+    }
+    res.json({ message: 'If that email is registered, we have sent the Workplace ID to it.' });
   })
 );
 
