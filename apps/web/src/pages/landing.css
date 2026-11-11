@@ -115,7 +115,7 @@
 .lp-tile { display: flex; flex-direction: column; gap: 12px; background: var(--paper); border: 1px solid var(--line); border-radius: 16px; padding: 28px; }
 .lp-tile p { color: var(--mute); }
 .lp-tile > .lp-icon { color: var(--red); width: 30px; height: 30px; }
-.span-2 { grid-column: span 2; } .span-4 { grid-column: span 4; } .span-6 { grid-column: span 6; }
+.span-2 { grid-column: span 2; } .span-3 { grid-column: span 3; } .span-4 { grid-column: span 4; } .span-6 { grid-column: span 6; }
 .lp-assist { display: grid; grid-template-columns: 1fr 1fr; gap: 36px; align-items: center; }
 .lp-assist > div:first-child { display: flex; flex-direction: column; gap: 12px; }
 
@@ -223,7 +223,7 @@
   .lp-links { display: none; }
   .lp-hero-in, .lp-devices, .lp-dark-in, .lp-faq, .lp-uses, .lp-assist { grid-template-columns: 1fr; gap: 40px; }
   .lp-steps { grid-template-columns: 1fr; gap: 32px; }
-  .span-2, .span-4, .span-6 { grid-column: span 6; }
+  .span-2, .span-3, .span-4, .span-6 { grid-column: span 6; }
   .lp-scan { left: 14px; bottom: 14px; }
   .lp-devices { gap: 32px; }
   .lp-scanner { max-width: 320px; }
@@ -249,3 +249,8 @@
 .lp-doc h2 { font-size: 1.5rem; margin-bottom: 10px; }
 .lp-doc p { margin-bottom: 12px; max-width: 42em; }
 .lp-doc ul { list-style: disc; padding-left: 22px; display: grid; gap: 8px; max-width: 42em; }
+
+.lp-who { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+.lp-who article { background: #fff; border: 1px solid var(--line, #eadfde); border-radius: 18px; padding: 24px; display: grid; gap: 8px; align-content: start; }
+.lp-who article p { color: var(--mute); }
+@media (max-width: 960px) { .lp-who { grid-template-columns: 1fr; } }

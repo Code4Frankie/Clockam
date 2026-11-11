@@ -7,7 +7,7 @@ import { ORG_TYPES } from '../orgTypes.js';
 import PasswordInput from '../components/PasswordInput.jsx';
 
 export default function RegisterOrg() {
-  const [form, setForm] = useState({ organizationName: '', name: '', email: '', password: '', timezone: 'Africa/Lagos', type: 'workplace' });
+  const [form, setForm] = useState({ organizationName: '', name: '', email: '', password: '', timezone: 'Africa/Lagos', type: '' });
   const [error, setError] = useState('');
   const { signIn } = useAuth();
   const navigate = useNavigate();
@@ -27,14 +27,16 @@ export default function RegisterOrg() {
   return (
     <div className="auth-page">
       <form className="card auth-card" onSubmit={submit}>
+        <Link to="/" className="back-home">← Back to home</Link>
         <Logo size={150} />
         <h2>Create your account</h2>
-        <label>This is a
-          <select value={form.type} onChange={set('type')}>
+        <label>Choose type of workplace
+          <select value={form.type} onChange={set('type')} required>
+            <option value="" disabled>Choose…</option>
             {ORG_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}: {t.hint}</option>)}
           </select>
         </label>
-        <label>Name of business, school or office<input value={form.organizationName} onChange={set('organizationName')} required /></label>
+        <label>Name of your workplace<input value={form.organizationName} onChange={set('organizationName')} required /></label>
         <label>Your name<input value={form.name} onChange={set('name')} required /></label>
         <label>Email<input type="email" value={form.email} onChange={set('email')} required /></label>
         <label>Password (8+ characters)<PasswordInput minLength={8} value={form.password} onChange={set('password')} required /></label>

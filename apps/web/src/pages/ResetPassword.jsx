@@ -30,6 +30,7 @@ export default function ResetPassword() {
   return (
     <div className="auth-page">
       <form className="card auth-card" onSubmit={submit}>
+        <Link to="/" className="back-home">← Back to home</Link>
         <Logo size={150} />
         <h2>Choose a new password</h2>
         {!token ? (

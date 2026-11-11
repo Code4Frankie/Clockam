@@ -38,6 +38,7 @@ export default function Layout() {
         <div className="sidebar-foot">
           <strong>{user.name}</strong>
           <span>{organization?.name} · {user.role}</span>
+          <span title="People sign in with this">Workplace ID: <strong>{organization?.slug}</strong></span>
           <button className="btn ghost" onClick={logout}>Log out</button>
         </div>
       </aside>

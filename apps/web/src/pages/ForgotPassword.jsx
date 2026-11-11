@@ -27,6 +27,7 @@ export default function ForgotPassword() {
   return (
     <div className="auth-page">
       <form className="card auth-card" onSubmit={submit}>
+        <Link to="/" className="back-home">← Back to home</Link>
         <Logo size={150} />
         <h2>Reset your password</h2>
         {done ? (

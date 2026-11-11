@@ -30,9 +30,10 @@ export default function Login() {
   return (
     <div className="auth-page">
       <form className="card auth-card" onSubmit={submit}>
+        <Link to="/" className="back-home">← Back to home</Link>
         <Logo size={150} />
         <h2>Sign in</h2>
-        <label>Workplace ID<input value={form.orgSlug} onChange={set('orgSlug')} placeholder="e.g. frankiecode" required /></label>
+        <label>Workplace ID<input value={form.orgSlug} onChange={set('orgSlug')} placeholder="e.g. frankiecode" required /><small className="muted">The short name made when your workplace was registered. The owner can see it at the bottom of the menu.</small></label>
         <label>Email<input type="email" value={form.email} onChange={set('email')} required /></label>
         <label>Password<PasswordInput value={form.password} onChange={set('password')} required /></label>
         {error && <p className="error">{error}</p>}

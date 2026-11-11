@@ -97,24 +97,16 @@ function ComingSoon({ open, onClose }) {
 
 const FAQ = [
   {
-    q: 'Do you store fingerprints?',
-    a: 'No. The phone or laptop checks the finger and sends back a signed yes. ClockAm keeps only a public key that can confirm that signature, never the fingerprint itself.',
+    q: 'Do you store fingerprints or faces?',
+    a: 'No. The phone checks the fingerprint or face and sends back a signed yes. ClockAm keeps only a public key that can confirm it, never the fingerprint or face itself.',
   },
   {
-    q: 'Does every employee need a smartphone?',
-    a: 'No. A front-desk Windows laptop with Windows Hello, or a fingerprint security key, works too. Support for USB and handheld scanners is rolling out.',
+    q: 'Does everyone need a smartphone?',
+    a: 'No. A front-desk Windows laptop with Windows Hello, a fingerprint security key, or a USB scanner works too.',
   },
   {
     q: 'What happens if the internet drops?',
-    a: 'ClockAm needs an internet connection to record a clock-in today. Offline clock-in is on our list.',
-  },
-  {
-    q: 'Can I use the records for payroll?',
-    a: 'Yes. Export days present, days late and hours worked for each person, for any date range, as a CSV file.',
-  },
-  {
-    q: 'What if someone forgets to clock out?',
-    a: 'An admin can set the time on the Edit attendance page, and every change is saved with a reason. You can also turn on automatic closing, so a day left open is closed at closing time and marked automatic.',
+    a: 'The front-desk scanner kiosk can save clock-ins and send them when the connection returns. Phones need a connection.',
   },
   {
     q: 'Who builds ClockAm?',
@@ -159,19 +151,18 @@ export default function Landing() {
         <section className="lp-hero" aria-labelledby="hero-title">
           <div className="lp-wrap lp-hero-in">
             <div className="lp-hero-copy">
-              <h1 id="hero-title">Clock in with a fingerprint. Nobody can sign for a friend.</h1>
+              <h1 id="hero-title">Know who showed up. Nobody can sign in for a friend.</h1>
               <p className="lp-lede">
-                ClockAm records who arrives, who is late and who leaves, from a phone, a laptop or the front-desk kiosk. Then it turns
-                that into attendance reports you can export.
+                Staff clock in and students mark class attendance with their phone's fingerprint or face check. You get clear attendance reports.
               </p>
               <div className="lp-actions">
-                <Link className="lp-btn big" to="/register">Create your workplace</Link>
+                <Link className="lp-btn big" to="/register">Get started</Link>
                 <button type="button" className="lp-btn big ghost" onClick={getApp}>{canInstall ? 'Install ClockAm on this phone' : 'Download the ClockAm app'}</button>
               </div>
               <ul className="lp-facts">
-                <li><Icon name="check" />Fingerprints stay on the device</li>
-                <li><Icon name="check" />Phones and Windows laptops today</li>
-                <li><Icon name="check" />Lagos time by default</li>
+                <li><Icon name="check" />Fingerprints and faces stay on the phone</li>
+                <li><Icon name="check" />For businesses, schools and government offices</li>
+                <li><Icon name="check" />Reports you can export</li>
               </ul>
             </div>
 
@@ -207,8 +198,8 @@ export default function Landing() {
         <section id="features" className="lp-section lp-wash" aria-labelledby="features-title">
           <div className="lp-wrap">
             <div className="lp-head">
-              <h2 id="features-title">Scanning, lateness and reports in one place</h2>
-              <p className="lp-lede">The front desk scans. Managers watch the day fill in. Payroll gets a clean export.</p>
+              <h2 id="features-title">Everything attendance needs</h2>
+              <p className="lp-lede">See the day fill in, catch late arrivals, and export the records.</p>
             </div>
 
             <div className="lp-bento">
@@ -243,40 +234,18 @@ export default function Landing() {
                 </div>
               </article>
 
-              <article className="lp-tile span-2">
+              <article className="lp-tile span-3">
                 <Icon name="clock" />
                 <h3>Late marks without the arguing</h3>
                 <p>Anyone who clocks in after the start time and grace period is flagged automatically.</p>
               </article>
 
-              <article className="lp-tile span-2">
+              <article className="lp-tile span-3">
                 <Icon name="sheet" />
                 <h3>Reports you can export</h3>
                 <p>Days present, days late and hours worked for each person, as a CSV for payroll.</p>
               </article>
 
-              <article className="lp-tile span-2">
-                <Icon name="users" />
-                <h3>The right access for each person</h3>
-                <p>Owners and admins manage staff. Managers see attendance. Employees see only their own record.</p>
-              </article>
-
-              <article className="lp-tile span-6 lp-assist">
-                <div>
-                  <Icon name="chat" />
-                  <h3>Ask ClockAm</h3>
-                  <p>
-                    Type a question in plain English, like who is late today or who forgot to clock out. The assistant looks it up and
-                    prepares any fix, and nothing changes until you confirm. It can never clock anyone in or out.
-                  </p>
-                </div>
-                <div className="lp-mock lp-chat" aria-hidden="true">
-                  <p className="you">Who forgot to clock out yesterday?</p>
-                  <p className="bot">Two people: Amaka O. and Ibrahim S. I can prepare a correction for each.</p>
-                  <div className="lp-confirm"><span>Set Amaka O. clock-out to 17:00</span><b>Confirm</b></div>
-                  <p className="lp-sample">Sample chat</p>
-                </div>
-              </article>
             </div>
           </div>
         </section>
@@ -306,70 +275,21 @@ export default function Landing() {
         <section id="uses" className="lp-section lp-wash" aria-labelledby="uses-title">
           <div className="lp-wrap">
             <div className="lp-head">
-              <h2 id="uses-title">Built for places where attendance matters</h2>
-              <p className="lp-lede">Clinics, churches, factories and events work the same way: anywhere you need to know who showed up.</p>
+              <h2 id="uses-title">Who it is for</h2>
             </div>
-            <div className="lp-uses">
-              <figure>
-                <Photo
-                  name="office-checkin"
-                  alt="A man scans his fingerprint on a check-in terminal at a reception desk."
-                  sizes="(max-width: 960px) 100vw, 560px"
-                  w={1448}
-                  h={1086}
-                />
-                <figcaption>
-                  <h3>Offices, schools and academies</h3>
-                  <p>Staff check in at reception, and managers know who is late before the morning meeting.</p>
-                </figcaption>
-              </figure>
-              <figure>
-                <Photo
-                  name="training-checkin"
-                  alt="Footballers in blue kit walk past a Training Check-In sign while one scans his fingerprint on a terminal showing Clocked In."
-                  sizes="(max-width: 960px) 100vw, 560px"
-                  w={1536}
-                  h={1024}
-                />
-                <figcaption>
-                  <h3>Sports clubs and training grounds</h3>
-                  <p>Players and staff check in on arrival, and the club keeps a record of who attended each day.</p>
-                </figcaption>
-              </figure>
-            </div>
-          </div>
-        </section>
-
-        <section id="devices" className="lp-section" aria-labelledby="devices-title">
-          <div className="lp-wrap lp-devices">
-            <img className="lp-scanner" src="/landing/scanner.webp" alt="Close-up of a fingerprint terminal showing Clocked In at 07:12 AM." width="390" height="369" loading="lazy" decoding="async" />
-            <div>
-              <div className="lp-head">
-                <h2 id="devices-title">Works with the devices you already have</h2>
-              </div>
-              <ul className="lp-device-list">
-                <li>
-                  <div>
-                    <h3>Phones and laptops with fingerprint sensors</h3>
-                    <p>Phones with a fingerprint sensor, Windows Hello laptops and fingerprint security keys.</p>
-                  </div>
-                  <span className="lp-chip now">Available now</span>
-                </li>
-                <li>
-                  <div>
-                    <h3>USB and handheld scanners</h3>
-                    <p>Connect through a small helper app on the front-desk computer. Ask us which models are supported.</p>
-                  </div>
-                  <span className="lp-chip soon">Rolling out</span>
-                </li>
-                <li>
-                  <div>
-                    <h3>ClockAm mobile app</h3>
-                    <p>A dedicated app for clocking in from a phone.</p>
-                  </div>
-                  <button type="button" className="lp-chip later lp-chip-btn" onClick={() => setSoon(true)}>Coming soon</button>
-                </li>
-              </ul>
+            <div className="lp-who">
+              <article>
+                <h3>Businesses</h3>
+                <p>Staff clock in and out, breaks are tracked, and late arrivals are flagged for payroll.</p>
+              </article>
+              <article>
+                <h3>Schools</h3>
+                <p>Students scan a code in class and confirm with their phone. Lecturers see who is present and who is absent.</p>
+              </article>
+              <article>
+                <h3>Government offices</h3>
+                <p>Ministries, departments and agencies record daily attendance, with reports for every office.</p>
+              </article>
             </div>
           </div>
         </section>
@@ -377,16 +297,15 @@ export default function Landing() {
         <section className="lp-section lp-dark" aria-labelledby="privacy-title">
           <div className="lp-wrap lp-dark-in">
             <div>
-              <h2 id="privacy-title">Fingerprints stay on the device</h2>
+              <h2 id="privacy-title">Fingerprints and faces stay on the phone</h2>
               <p className="lp-lede">
-                ClockAm never receives a picture or copy of anyone's fingerprint. The phone or laptop checks the finger and sends back a
-                signed yes. We keep only a public key that can confirm that yes.
+                ClockAm never receives a copy of anyone's fingerprint or face scan. The phone checks and sends back a signed yes. We keep only a public key that can confirm it.
               </p>
             </div>
             <ul className="lp-points">
               <li><Icon name="shield" />If a phone is lost, an admin removes its fingerprint and the employee enrols again.</li>
               <li><Icon name="shield" />Employees see their own record. Managers and admins see their own workplace and nothing else.</li>
-              <li><Icon name="shield" />The assistant can look things up and prepare changes, but a person has to confirm every change.</li>
+              <li><Icon name="shield" />Schools can ask students for a class selfie. Lecturers see it for 30 days, then it is deleted.</li>
             </ul>
           </div>
         </section>
@@ -409,9 +328,9 @@ export default function Landing() {
 
         <section className="lp-cta" aria-labelledby="cta-title">
           <div className="lp-wrap">
-            <h2 id="cta-title">Create your workplace and clock in your first employee today.</h2>
+            <h2 id="cta-title">Set up in minutes and take your first attendance today.</h2>
             <div className="lp-actions">
-              <Link className="lp-btn big" to="/register">Create your workplace</Link>
+              <Link className="lp-btn big" to="/register">Get started</Link>
               <Link className="lp-btn big ghost" to="/login">Sign in</Link>
             </div>
           </div>
