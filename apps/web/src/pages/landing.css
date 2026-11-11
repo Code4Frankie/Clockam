@@ -197,7 +197,7 @@
 .lp-footer { background: var(--wash); border-top: 1px solid var(--line); padding: 40px 0 28px; }
 .lp-foot { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 24px; }
 .lp-foot-brand { display: flex; align-items: center; gap: 16px; }
-.lp-foot-brand img { mix-blend-mode: multiply; }
+.lp-foot-brand img { }
 .lp-foot-brand div { display: grid; }
 .lp-foot-brand a { color: var(--red-deep); font-weight: 500; }
 .lp-foot-links { display: flex; gap: 24px; }
@@ -254,3 +254,6 @@
 .lp-who article { background: #fff; border: 1px solid var(--line, #eadfde); border-radius: 18px; padding: 24px; display: grid; gap: 8px; align-content: start; }
 .lp-who article p { color: var(--mute); }
 @media (max-width: 960px) { .lp-who { grid-template-columns: 1fr; } }
+
+/* The ClockAm name and swoosh, cropped from the logo, with a transparent background. */
+.lp-wordmark { display: block; width: clamp(200px, 30vw, 300px); height: auto; margin: -14px 0 -6px -14px; }

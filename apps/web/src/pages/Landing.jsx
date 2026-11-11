@@ -151,6 +151,10 @@ export default function Landing() {
         <section className="lp-hero" aria-labelledby="hero-title">
           <div className="lp-wrap lp-hero-in">
             <div className="lp-hero-copy">
+              <picture>
+                <source srcSet="/landing/wordmark.webp" type="image/webp" />
+                <img className="lp-wordmark" src="/landing/wordmark.png" width="928" height="304" alt="ClockAm" />
+              </picture>
               <h1 id="hero-title">Know who showed up. Nobody can sign in for a friend.</h1>
               <p className="lp-lede">
                 Staff clock in and students mark class attendance with their phone's fingerprint or face check. You get clear attendance reports.
