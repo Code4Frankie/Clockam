@@ -175,12 +175,11 @@ export default function Landing() {
                 h={1086}
                 priority
               />
-              <div className="lp-scan" role="img" aria-label={`Sample confirmation: Nancy A. clocked in at ${time}`}>
+              <div className="lp-scan" role="img" aria-label={`Confirmation: Nancy A. clocked in at ${time}`}>
                 <span className="lp-tick"><Icon name="check" /></span>
                 <span>
                   <b>Clocked in</b>
                   <span className="lp-scan-meta">Nancy A. at <time>{time}</time></span>
-                  <small>Sample screen</small>
                 </span>
               </div>
             </figure>
@@ -219,7 +218,6 @@ export default function Landing() {
                     <li><span>Ibrahim Etim</span><time>07:58</time><em className="ok">On time</em></li>
                     <li><span>Essla Muemue</span><time>08:34</time><em className="warn">Late</em></li>
                   </ul>
-                  <p className="lp-sample">Sample data</p>
                 </div>
               </article>
 
@@ -230,7 +228,6 @@ export default function Landing() {
                   <strong>{time}</strong>
                   <div className="lp-field">EMP-014</div>
                   <div className="lp-kbtn">Clock in / out</div>
-                  <p className="lp-sample">Sample screen</p>
                 </div>
               </article>
 
