@@ -17,6 +17,16 @@ import ForgotPassword from './pages/ForgotPassword.jsx';
 import ResetPassword from './pages/ResetPassword.jsx';
 import { Privacy, Terms } from './pages/Legal.jsx';
 import EditAttendance from './pages/EditAttendance.jsx';
+import Review from './pages/Review.jsx';
+import Attend from './pages/Attend.jsx';
+import Enrol from './pages/Enrol.jsx';
+import Classes from './pages/Classes.jsx';
+import ClassScreen from './pages/ClassScreen.jsx';
+import Courses from './pages/Courses.jsx';
+import CourseDetail from './pages/CourseDetail.jsx';
+import Billing from './pages/Billing.jsx';
+import AdminBilling from './pages/AdminBilling.jsx';
+import Students from './pages/Students.jsx';
 import Landing from './pages/Landing.jsx';
 
 function Protected({ children }) {
@@ -40,16 +50,26 @@ export default function App() {
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/register" element={<RegisterOrg />} />
+      <Route path="/attend/:sessionId" element={<Attend />} />
+      <Route path="/enrol" element={<Enrol />} />
       <Route path="/kiosk/:orgSlug" element={<Kiosk />} />
       <Route element={<Protected><Layout /></Protected>}>
         <Route path="/dashboard" element={<Home />} />
         <Route path="/employees" element={<Employees />} />
         <Route path="/devices" element={<Devices />} />
         <Route path="/reports" element={<Reports />} />
+        <Route path="/classes" element={<Classes />} />
+        <Route path="/classes/:id" element={<ClassScreen />} />
+        <Route path="/courses" element={<Courses />} />
+        <Route path="/courses/:id" element={<CourseDetail />} />
+        <Route path="/students" element={<Students />} />
         <Route path="/me" element={<MyFingerprint />} />
+        <Route path="/review" element={<Review />} />
         <Route path="/edit-attendance" element={<EditAttendance />} />
         <Route path="/corrections" element={<Corrections />} />
         <Route path="/settings" element={<Settings />} />
+        <Route path="/billing" element={<Billing />} />
+        <Route path="/admin/billing" element={<AdminBilling />} />
         <Route path="/admin/seo" element={<AdminSeo />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />

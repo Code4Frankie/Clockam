@@ -1,3 +1,4 @@
+import { useInstall } from '../useInstall.js';
 import { useEffect, useRef, useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import { useAuth } from '../auth.jsx';
@@ -71,6 +72,7 @@ function useLagosTime() {
 
 function ComingSoon({ open, onClose }) {
   const ref = useRef(null);
+  const { canInstall, install } = useInstall();
   useEffect(() => {
     const d = ref.current;
     if (!d) return;
@@ -81,11 +83,12 @@ function ComingSoon({ open, onClose }) {
     <dialog ref={ref} className="lp-dialog" onClose={onClose} onClick={(e) => e.target === ref.current && onClose()} aria-labelledby="soon-title">
       <h2 id="soon-title">The ClockAm app is coming soon</h2>
       <p>
-        We are still building the phone app. Until then, clock in from your phone's browser with its fingerprint sensor: sign in,
-        enrol once, and you are set.
+        The store app is still being built. You can already put ClockAm on your home screen: in Chrome open the menu and tap
+        Install app, on iPhone tap Share then Add to Home Screen. Then sign in and set up your phone's face or fingerprint once.
       </p>
       <div className="lp-actions">
-        <Link className="lp-btn" to="/login">Sign in on this phone</Link>
+        {canInstall && <button type="button" className="lp-btn" onClick={async () => { await install(); onClose(); }}>Install ClockAm now</button>}
+        <Link className={canInstall ? 'lp-btn ghost' : 'lp-btn'} to="/login">Sign in on this phone</Link>
         <button type="button" className="lp-btn ghost" onClick={onClose} autoFocus>Close</button>
       </div>
     </dialog>
@@ -123,6 +126,8 @@ export default function Landing() {
   const { user, loading } = useAuth();
   const time = useLagosTime();
   const [soon, setSoon] = useState(false);
+  const { canInstall, install } = useInstall();
+  const getApp = () => (canInstall ? install() : setSoon(true));
 
   if (loading) return null;
   if (user) return <Navigate to="/dashboard" replace />;
@@ -146,7 +151,7 @@ export default function Landing() {
             <Link className="lp-btn ghost" to="/login">Sign in</Link>
             <Link className="lp-btn" to="/register">Get started</Link>
           </div>
-          <button type="button" className="lp-btn ghost lp-dl-nav" onClick={() => setSoon(true)}>Download the app</button>
+          <button type="button" className="lp-btn ghost lp-dl-nav" onClick={getApp}>{canInstall ? 'Install the app' : 'Download the app'}</button>
         </div>
       </header>
 
@@ -161,7 +166,7 @@ export default function Landing() {
               </p>
               <div className="lp-actions">
                 <Link className="lp-btn big" to="/register">Create your workplace</Link>
-                <button type="button" className="lp-btn big ghost" onClick={() => setSoon(true)}>Download the ClockAm app</button>
+                <button type="button" className="lp-btn big ghost" onClick={getApp}>{canInstall ? 'Install ClockAm on this phone' : 'Download the ClockAm app'}</button>
               </div>
               <ul className="lp-facts">
                 <li><Icon name="check" />Fingerprints stay on the device</li>

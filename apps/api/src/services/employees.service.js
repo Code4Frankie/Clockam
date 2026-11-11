@@ -19,7 +19,7 @@ export const employeeBrief = (u) => ({
 // Matches the start of any word in name, staff ID or department. Input is regex-escaped.
 export async function findEmployees({ orgId, query, limit = 20 }) {
   const rx = new RegExp(`(^|\\s)${escapeRegex(query)}`, 'i');
-  const users = await User.find({ organization: orgId, $or: [{ name: rx }, { staffId: rx }, { department: rx }] })
+  const users = await User.find({ organization: orgId, role: { $ne: 'student' }, $or: [{ name: rx }, { staffId: rx }, { department: rx }] })
     .select('name staffId department role active webauthnCredentials scannerLinks')
     .sort({ name: 1 })
     .limit(limit);

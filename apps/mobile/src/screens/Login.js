@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { View, Text, TextInput, Pressable, Image, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { View, Text, TextInput, Pressable, Image, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, Linking } from 'react-native';
+import Constants from 'expo-constants';
 import { api } from '../api.js';
 import { friendlyError } from '../logic.js';
 import { c } from '../theme.js';
@@ -50,7 +51,10 @@ export default function Login({ onSignedIn }) {
         <Pressable onPress={submit} disabled={busy || !f.orgSlug || !f.email || !f.password} accessibilityRole="button" style={{ backgroundColor: c.red, opacity: busy || !f.orgSlug || !f.email || !f.password ? 0.6 : 1, borderRadius: 10, padding: 16, alignItems: 'center', marginTop: 24 }}>
           {busy ? <ActivityIndicator color="#fff" /> : <Text style={{ color: '#fff', fontWeight: '700', fontSize: 16 }}>Sign in</Text>}
         </Pressable>
-        <Text style={{ color: c.mute, textAlign: 'center', marginTop: 28 }}>ClockAm by Frankiecode Solutions</Text>
+        <Pressable onPress={() => Linking.openURL(`${Constants.expoConfig?.extra?.webUrl || 'https://clockam.vercel.app'}/forgot-password`)} accessibilityRole="link" style={{ padding: 14, alignItems: 'center' }}>
+          <Text style={{ color: c.red, fontWeight: '600' }}>Forgot your password?</Text>
+        </Pressable>
+        <Text style={{ color: c.mute, textAlign: 'center', marginTop: 14 }}>ClockAm by Frankiecode Solutions</Text>
       </ScrollView>
     </KeyboardAvoidingView>
   );

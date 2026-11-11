@@ -146,7 +146,7 @@ router.post(
     await user.save();
 
     const act = req.body.intent === 'break' ? toggleBreak : clockUser;
-    const result = await act({ user, org, method: 'webauthn', location: req.body.location });
+    const result = await act({ user, org, method: 'webauthn', location: req.body.location, ip: req.ip });
     res.json({ ...result, employee: { name: user.name, staffId: user.staffId } });
   })
 );

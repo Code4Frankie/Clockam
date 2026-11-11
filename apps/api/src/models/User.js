@@ -28,12 +28,16 @@ const userSchema = new mongoose.Schema(
     staffId: { type: String, required: true, trim: true },
     phone: String,
     department: String,
-    role: { type: String, enum: ['owner', 'admin', 'manager', 'employee'], default: 'employee' },
+    role: { type: String, enum: ['owner', 'admin', 'manager', 'employee', 'student'], default: 'employee' },
     passwordHash: { type: String, required: true, select: false },
     active: { type: Boolean, default: true },
+    passwordChangedAt: Date, // sign-in tokens issued before this moment stop working
     webauthnCredentials: [webauthnCredentialSchema],
     scannerLinks: [scannerLinkSchema],
     currentChallenge: { type: String, select: false },
+    enrolCodeHash: { type: String, select: false }, // students: one-time code to set up their phone
+    enrolCodeExpires: { type: Date, select: false },
+    enrolFailures: { type: Number, default: 0, select: false },
   },
   { timestamps: true }
 );

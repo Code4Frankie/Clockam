@@ -40,9 +40,10 @@ export function Privacy() {
           'Account details: name, email address, staff ID, department, phone number if one is added, and role.',
           'Attendance: clock-in and clock-out times, whether you were late, the method used (for example phone fingerprint, scanner or manual correction), and which device was used.',
           'Location: your phone or laptop location at the moment you clock in, but only if your workplace turns on the location check. Scanners and kiosks do not collect it.',
+          'Selfie (schools only): if your school turns it on, a small photo taken when a student marks class attendance. Lecturers and school admins can view it, and it is deleted automatically after 30 days. ClockAm does not run face recognition on it.',
           'Assistant: when an owner, admin or manager uses the ClockAm assistant, we keep a record of which lookups and changes it made (not the text of the chat), for a limited time.',
         ]],
-        ['Your fingerprint', 'ClockAm does not receive or store your fingerprint or a copy of it when you clock in with a phone, laptop or security key. Your device checks your finger and sends ClockAm a signed confirmation. ClockAm keeps only a public key that can check that confirmation. If your workplace uses a USB scanner, the fingerprint template is stored on the computer the scanner is plugged into. If it uses a standalone unit, the template is stored on that unit. In both cases it stays at the workplace.'],
+        ['Your fingerprint', 'ClockAm does not receive or store your fingerprint or a copy of it when you clock in with a phone, laptop or security key. Your device checks your finger and sends ClockAm a signed confirmation. ClockAm keeps only a public key that can check that confirmation. If your workplace uses a USB scanner, the fingerprint template is stored on the computer the scanner is plugged into. If it uses a standalone unit, the template is stored on that unit. In both cases it stays at the workplace. The same applies to the face or fingerprint check that students and staff use on their own phones: the phone does the check, and ClockAm never receives a face or fingerprint.'],
         ['Why we use it', [
           'To record attendance and show who is in, late or absent.',
           'To prepare reports your workplace can export, for example for payroll.',

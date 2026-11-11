@@ -1,11 +1,13 @@
 import { Router } from 'express';
 import { requireAuth, requireRole } from '../middleware/auth.js';
 import { autoClockOutSweep } from '../middleware/autoClockOut.js';
+import { billingGate } from '../middleware/billing.js';
+import { csvCell } from '../utils/csv.js';
 import { buildSummary } from '../services/reports.service.js';
 import { asyncHandler, HttpError } from '../utils/http.js';
 
 const router = Router();
-router.use(requireAuth, requireRole('owner', 'admin', 'manager'), autoClockOutSweep);
+router.use(requireAuth, requireRole('owner', 'admin', 'manager'), billingGate, autoClockOutSweep);
 
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -23,13 +25,6 @@ router.get(
     res.json(await summaryFor(req));
   })
 );
-
-// Quotes a cell, and defuses text that a spreadsheet would run as a formula (a name like =HYPERLINK(...)).
-const csvCell = (v) => {
-  let s = String(v ?? '');
-  if (typeof v === 'string' && /^[=+\-@\t\r]/.test(s)) s = `'${s}`;
-  return `"${s.replace(/"/g, '""')}"`;
-};
 
 router.get(
   '/export.csv',

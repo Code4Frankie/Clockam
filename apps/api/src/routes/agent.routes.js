@@ -12,11 +12,12 @@ import { callModel } from '../agent/llm.js';
 import { buildSystemPrompt } from '../agent/systemPrompt.js';
 import { tools, toolDefinitionsFor, executeTool, executeConfirmed } from '../agent/toolRegistry.js';
 import { confirmationStore } from '../agent/confirmations.js';
+import { billingGate } from '../middleware/billing.js';
 import { logToolCall } from '../agent/logger.js';
 import { todayKey } from '../services/attendance.service.js';
 
 const router = Router();
-router.use(requireAuth);
+router.use(requireAuth, billingGate);
 
 // Per signed-in user (not per IP): the limiter runs after requireAuth.
 router.use(

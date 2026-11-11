@@ -25,13 +25,25 @@ async function currentLocation() {
   return { lat: p.coords.latitude, lng: p.coords.longitude };
 }
 
-export default function Home({ session, onSignOut }) {
+export default function Home({ session, onSignOut, onOrgChange }) {
   const { token, user, organization } = session;
   const tz = organization?.timezone || 'Africa/Lagos';
   const [records, setRecords] = useState(null);
   const [busy, setBusy] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [msg, setMsg] = useState({ type: '', text: '' });
+
+  // The workplace settings (such as the location check) can change after sign-in, so ask for the current ones.
+  async function freshOrganization() {
+    try {
+      const me = await api('/auth/me', { token });
+      if (JSON.stringify(me.organization) !== JSON.stringify(organization)) onOrgChange?.(me.organization);
+      return me.organization;
+    } catch (e) {
+      if (e.status === 401) throw e;
+      return organization; // offline or server busy: use what we have
+    }
+  }
 
   const load = useCallback(async () => {
     try {
@@ -52,7 +64,7 @@ export default function Home({ session, onSignOut }) {
     setBusy(true);
     try {
       await confirmItsYou(action.kind);
-      const location = needsLocation(organization) ? await currentLocation() : undefined;
+      const location = needsLocation(await freshOrganization()) ? await currentLocation() : undefined;
       const res = await api('/attendance/clock', { method: 'POST', token, body: location ? { location } : {} });
       setMsg({ type: 'ok', text: res.action === 'clock-in' ? (res.record.status === 'late' ? 'Clocked in. You are marked late.' : 'Clocked in. Have a good day.') : 'Clocked out. See you next time.' });
       await load();
@@ -72,7 +84,7 @@ export default function Home({ session, onSignOut }) {
     setBusy(true);
     try {
       await confirmItsYou('break');
-      const location = needsLocation(organization) ? await currentLocation() : undefined;
+      const location = needsLocation(await freshOrganization()) ? await currentLocation() : undefined;
       const res = await api('/attendance/break', { method: 'POST', token, body: location ? { location } : {} });
       setMsg({ type: 'ok', text: res.action === 'break-start' ? 'Break started.' : 'Welcome back. Break ended.' });
       await load();

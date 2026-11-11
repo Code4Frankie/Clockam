@@ -3,10 +3,14 @@ import { Organization } from '../models/Organization.js';
 import { requireAuth, requireRole } from '../middleware/auth.js';
 import { validate } from '../middleware/validate.js';
 import { asyncHandler, HttpError } from '../utils/http.js';
+import { normalizeIp } from '../utils/network.js';
 import { settingsSchema, mergeSettings, checkMerged } from '../utils/orgSettings.js';
 
 const router = Router();
 router.use(requireAuth);
+
+// The public address this server sees for you. An admin on the workplace Wi-Fi uses it to fill in "allowed networks".
+router.get('/my-ip', requireRole('owner', 'admin'), (req, res) => res.json({ ip: normalizeIp(req.ip) }));
 
 // Work hours and location rules. New rules apply to future clock-ins only; saved records are not rewritten.
 router.patch(

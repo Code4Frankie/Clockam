@@ -17,10 +17,19 @@ npx expo start
 Install **Expo Go** on the phone, scan the QR code, and sign in with a real workplace ID, email and password.
 Point it at another API with `EXPO_PUBLIC_API_URL=http://<your-pc-ip>:4000/api npx expo start`.
 
-## Build an installable app later
+## Build an installable Android app (.apk)
 
-`npm install -g eas-cli`, then `eas build --platform android --profile preview` (needs a free Expo account).
-Android gives you an `.apk` you can share. iOS needs a paid Apple developer account.
+The config is ready (`eas.json`, Android permissions and package name in `app.json`). You need a free Expo account.
+
+```bash
+npm install -g eas-cli
+eas login
+cd apps/mobile
+eas init                                   # links the project to your Expo account (writes the project ID into app.json)
+eas build --platform android --profile preview
+```
+
+EAS builds in the cloud and gives you a link to an `.apk` you can send to staff. They may need to allow "install from unknown sources". To publish on Google Play instead, use `--profile production` (makes an `.aab`) and follow `PLAY_STORE.md`. iOS needs a paid Apple developer account.
 
 ## How it checks identity (and its limit)
 
@@ -30,7 +39,11 @@ happened, which is weaker than the browser or kiosk fingerprint check (that one 
 checked by the server). For workplaces that care most about buddy clocking, use the kiosk for clock-in and the app for
 viewing history.
 
+Forgot password opens the website's reset page in the phone browser.
+
+Students do not use this app. They mark attendance in the phone browser (or the home-screen version of the site), which supports the passkey check that the app cannot.
+
 ## Not built yet
 
-Password reset, push reminders, offline clock-in, and WebAuthn passkeys inside the app. I have not run this on a phone,
+Push reminders, offline clock-in, and WebAuthn passkeys inside the app. I have not run this on a phone,
 because the build sandbox cannot install Expo. Treat the first run as a test.

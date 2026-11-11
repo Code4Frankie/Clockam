@@ -1,6 +1,23 @@
 import mongoose from 'mongoose';
 
-const METHODS = ['webauthn', 'scanner', 'device-biometric', 'manual'];
+const METHODS = ['webauthn', 'scanner', 'device-biometric', 'manual', 'zkteco', 'auto'];
+
+const breakSchema = new mongoose.Schema(
+  { start: { type: Date, required: true }, end: Date, method: { type: String, enum: METHODS } },
+  { _id: false }
+);
+
+// One entry per admin change, so edited days can be traced.
+const editSchema = new mongoose.Schema(
+  {
+    at: { type: Date, default: Date.now },
+    by: String,
+    reason: { type: String, maxlength: 200 },
+    before: { clockIn: Date, clockOut: Date, status: String },
+    after: { clockIn: Date, clockOut: Date, status: String },
+  },
+  { _id: false }
+);
 
 const attendanceSchema = new mongoose.Schema(
   {
@@ -14,7 +31,11 @@ const attendanceSchema = new mongoose.Schema(
     clockOutMethod: { type: String, enum: METHODS },
     device: { type: mongoose.Schema.Types.ObjectId, ref: 'Device' },
     location: { lat: Number, lng: Number },
-    minutesWorked: { type: Number, default: 0 },
+    flags: [String], // for a manager to review, e.g. 'near-limit'
+    breaks: [breakSchema],
+    breakMinutes: { type: Number, default: 0 },
+    minutesWorked: { type: Number, default: 0 }, // after breaks
+    edits: [editSchema],
     note: String,
   },
   { timestamps: true }

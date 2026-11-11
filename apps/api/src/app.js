@@ -14,6 +14,9 @@ import reportRoutes from './routes/reports.routes.js';
 import zktecoRoutes from './routes/zkteco.routes.js';
 import organizationRoutes from './routes/organization.routes.js';
 import agentRoutes from './routes/agent.routes.js';
+import courseRoutes from './routes/courses.routes.js';
+import billingRoutes from './routes/billing.routes.js';
+import schoolRoutes from './routes/school.routes.js';
 import seoRoutes from './routes/seo.routes.js';
 
 const app = express();
@@ -21,7 +24,8 @@ const app = express();
 app.set('trust proxy', 1); // behind Render/Railway proxies
 app.use(helmet());
 app.use(cors({ origin: env.corsOrigins, credentials: true }));
-app.use(express.json({ limit: '1mb' }));
+// The raw body is kept so payment webhooks can be checked against their signature.
+app.use(express.json({ limit: '1mb', verify: (req, _res, buf) => { req.rawBody = buf; } }));
 if (env.NODE_ENV !== 'test') app.use(morgan('dev'));
 app.use('/api', rateLimit({ windowMs: 15 * 60 * 1000, limit: 600, standardHeaders: true, legacyHeaders: false }));
 
@@ -37,6 +41,9 @@ app.use('/api/biometric', biometricRoutes);
 app.use('/api/attendance', attendanceRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/organization', organizationRoutes);
+app.use('/api/school', schoolRoutes);
+app.use('/api/billing', billingRoutes);
+app.use('/api/courses', courseRoutes);
 app.use('/iclock', zktecoRoutes);
 app.use('/api/agent', agentRoutes);
 app.use('/api/admin/seo', seoRoutes);

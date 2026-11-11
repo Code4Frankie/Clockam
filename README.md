@@ -182,3 +182,57 @@ by every query filtering on the signed-in user's workplace, but no automated tes
 - **Automatic clock-out** (Work hours & location page): choose how many hours after closing time a day left open is closed. The clock-out is recorded at the closing time, marked `auto`, and can be corrected on Edit attendance. The sweep runs every 10 minutes while the API is awake and whenever someone opens attendance or reports (at most every 5 minutes per workplace), because a sleeping Render plan cannot run a timer reliably.
 - **Breaks**: staff start and end a break from the kiosk (both tabs) or the mobile app. Breaks are unpaid and subtracted from hours worked, up to 10 per day. A break left open is ended when the day closes. Breaks need the internet (they are not saved offline). Reports and the CSV show break minutes. Phone and PC fingerprint breaks use the same biometric check as clocking in.
 - Reports CSV: names that start with `=`, `+`, `-` or `@` are prefixed so spreadsheets do not run them as formulas.
+
+## Making phone clock-in harder to fake
+
+Scanners and ZKTeco units only work at the workplace, so they are the strongest check. For staff on their own phones or laptops:
+
+- **Location check** (Work hours & location): refuses a clock-in or break too far from the workplace. It trusts the location the phone reports, and fake-GPS apps exist, so it stops casual cheating only. Use an allowed distance of about 100 to 200 m.
+- **Allowed networks** (same page): optional list of the workplace's public IP addresses or IPv4 ranges (nothing wider than /16). Personal devices on any other network are refused, including staff on mobile data. Use "Add the network I am on now" while on the workplace Wi-Fi, and check the address matches your real public IP, because the API sits behind a hosting proxy and `trust proxy` is set to one hop. If the address shown is the same for everyone or looks like a hosting address, do not turn this rule on. If your provider changes the address, update the list.
+- **To review** page (managers and up): clock-ins that were accepted but landed in the outer 20% of the allowed distance. The flag is stored on the record when the person clocks in.
+- Both rules apply to clocking in and to breaks from phones and laptops. They never apply to USB scanners, ZKTeco units or manual edits by an admin.
+
+## School mode (class attendance with face or fingerprint)
+
+Set **This is a School** when registering, or change it in **Settings**. A school gets two extra pages: **Classes** and **Students**.
+
+How it works
+1. **Students** (admin): upload a CSV (Name, Matric number, optional Department). Each student gets a one-time set-up code, shown once. Download the codes CSV and hand them out.
+2. **Phone set-up** (student, once): open `/enrol?org=<school-slug>`, type the matric number and set-up code, and approve the phone's face or fingerprint prompt. Up to 2 phones per student. A code works once, expires in 14 days and locks after 5 wrong tries.
+3. **Class** (lecturer): **Classes → Start class** opens a projector screen with a QR code and 6-digit code that change every 30 seconds.
+4. **Attendance** (student): scan the QR (or open `/attend/<id>` and type the code), enter the matric number, confirm with the phone's face or fingerprint check. One mark per student per class.
+5. Lecturers see the headcount on screen, the present list, and can download a CSV.
+
+Face check: ClockAm uses the phone's own unlock (WebAuthn passkeys). ClockAm never receives or stores a face image. A website cannot force "face" specifically: a phone with face unlock uses it, a phone with only a fingerprint sensor uses that. The same passkeys also give staff a face/fingerprint clock-in on their own phones.
+
+Limits to know
+- Codes are valid for 30 to 60 seconds. Someone can forward a photo of the QR inside that window, but the friend also needs their own enrolled phone and passing the school's location/network rule.
+- Turn on **location check** and/or **allowed networks** in Settings (campus coordinates, campus Wi-Fi) to keep marking inside campus.
+- Two students sharing one phone cannot be told apart by the phone check alone.
+- The school list is by upload only; there are no per-course rosters yet, so a class shows who was present, not who was absent.
+- Web only: students use their phone browser, not the Expo app.
+- Run `npm install` after pulling (new `qrcode` dependency) and commit `package-lock.json`.
+
+### Courses, selfie and installing (added after school mode)
+
+- **Account types:** Business, School, or Government office (Ministry, Department or Agency, "MDA"). Business and Government work the same way (staff clock in and out); School adds Classes, Courses and Students. A Business is stored as `workplace` so older accounts keep working.
+- **Campus rule warning:** a school with no location check and no allowed Wi-Fi gets a warning in Settings and on Classes, and a confirmation before a class starts.
+- **Selfie:** on by default for schools (Settings can turn it off). The student takes a small photo when marking attendance. Lecturers can view it from the class screen; it is deleted after 30 days while the attendance record stays. No face recognition is run on it, so it deters someone else marking for a friend but does not prove identity by itself.
+- **Courses:** add a course, paste or upload its matric numbers (they must already be on the Students page), start classes for it, and see who is absent. The course report shows attended, held and percent per student, with CSV download. A student who marks a class but is not on the list is flagged "not on course list". All lecturers in a school can see all courses.
+- **Install on phone:** the site has a web app manifest and icons, so Chrome offers "Install app" and iPhones use Share, Add to Home Screen. This is the website on the home screen, not a store app.
+
+## Billing (Paystack)
+
+Prices are not in the code. A platform admin (a user ID in `PLATFORM_ADMIN_USER_IDS`) opens **Plans and prices** in the app and sets: a one-time setup fee, VAT %, free-trial days, and plans by number of people (ranges must run on from each other, the last can have no limit). Amounts are entered in naira and stored in kobo.
+
+- **Nothing is charged or locked** until at least one plan exists. Even then, admin pages are only locked when `BILLING_ENFORCED=true` on Render. Set that after you have tested payment.
+- **Counting people:** active accounts other than the owner (for a school this includes students).
+- **Paying:** the owner opens **Billing**, sees the amount (plan + setup fee once + VAT) worked out on the server, and pays through Paystack. Each payment adds 30 days. After a period ends there is a 3-day grace, then admin pages (employees, reports, scanners, attendance edits, classes, courses, student import) return "subscription expired". Clock-in, scanners and student attendance are never locked.
+- **Setup on Render (server only, never on Vercel):** `PAYSTACK_SECRET_KEY` (use the **test** key first). In the Paystack dashboard set the webhook URL to `https://clockam.onrender.com/api/billing/webhook/paystack`. The webhook is checked by signature and the amount is verified before a payment counts.
+- **OPay is not connected yet.** The button is Paystack only. OPay needs its sandbox keys and API documents before it can be added.
+
+### Per-lecturer courses and the assistant lock
+
+- In a school, the owner and admins see every course and class. A lecturer (manager role) sees, starts and reports only on courses and classes they created.
+- The AI assistant is now covered by the billing lock like the other admin features.
+- The mobile app has Android build config (`apps/mobile/eas.json`) and a Google Play checklist (`apps/mobile/PLAY_STORE.md`).

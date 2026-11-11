@@ -6,21 +6,50 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
-    "splash": { "image": "./assets/icon.png", "resizeMode": "contain", "backgroundColor": "#ffffff" },
+    "splash": {
+      "image": "./assets/icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "ng.org.frankiecode.clockam",
-      "infoPlist": { "NSFaceIDUsageDescription": "ClockAm uses Face ID to confirm it is you before clocking in." }
+      "infoPlist": {
+        "NSFaceIDUsageDescription": "ClockAm uses Face ID to confirm it is you before clocking in."
+      }
     },
     "android": {
       "package": "ng.org.frankiecode.clockam",
-      "adaptiveIcon": { "foregroundImage": "./assets/adaptive-icon.png", "backgroundColor": "#ffffff" }
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "versionCode": 1,
+      "permissions": [
+        "USE_BIOMETRIC",
+        "USE_FINGERPRINT",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION"
+      ]
     },
     "plugins": [
       "expo-secure-store",
-      ["expo-local-authentication", { "faceIDPermission": "ClockAm uses Face ID to confirm it is you before clocking in." }],
-      ["expo-location", { "locationWhenInUsePermission": "ClockAm checks you are at the workplace when you clock in." }]
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "ClockAm uses Face ID to confirm it is you before clocking in."
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "ClockAm checks you are at the workplace when you clock in."
+        }
+      ]
     ],
-    "extra": { "apiUrl": "https://clockam.onrender.com/api" }
+    "extra": {
+      "apiUrl": "https://clockam.onrender.com/api",
+      "webUrl": "https://clockam.vercel.app"
+    }
   }
 }

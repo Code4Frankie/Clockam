@@ -2,12 +2,15 @@ import { Router } from 'express';
 import bcrypt from 'bcryptjs';
 import { z } from 'zod';
 import { User } from '../models/User.js';
+import { clearFingerprints } from '../services/employees.service.js';
 import { requireAuth, requireRole } from '../middleware/auth.js';
+import { billingGate } from '../middleware/billing.js';
 import { validate } from '../middleware/validate.js';
 import { asyncHandler, HttpError } from '../utils/http.js';
+import { whyCannotEdit } from '../utils/permissions.js';
 
 const router = Router();
-router.use(requireAuth, requireRole('owner', 'admin', 'manager'));
+router.use(requireAuth, requireRole('owner', 'admin', 'manager'), billingGate);
 
 const createSchema = z.object({
   name: z.string().min(2),
@@ -26,7 +29,7 @@ const updateSchema = createSchema.partial().omit({ password: true }).extend({
 router.get(
   '/',
   asyncHandler(async (req, res) => {
-    const employees = await User.find({ organization: req.user.organization })
+    const employees = await User.find({ organization: req.user.organization, role: { $ne: 'student' } })
       .select('-webauthnCredentials.publicKey')
       .sort({ name: 1 });
     res.json(employees);
@@ -55,13 +58,28 @@ router.patch(
   requireRole('owner', 'admin'),
   validate(updateSchema),
   asyncHandler(async (req, res) => {
-    const user = await User.findOneAndUpdate(
-      { _id: req.params.id, organization: req.user.organization },
-      req.body,
-      { new: true }
-    );
-    if (!user) throw new HttpError(404, 'Employee not found');
-    res.json(user);
+    const target = await User.findOne({ _id: req.params.id, organization: req.user.organization });
+    if (!target) throw new HttpError(404, 'Employee not found');
+    const reason = whyCannotEdit(req.user.role, target, req.body);
+    if (reason) throw new HttpError(403, reason);
+    target.set(req.body);
+    await target.save();
+    res.json(target);
+  })
+);
+
+// Sets a new temporary password (for when someone forgot theirs and email reset is not set up). Signs them out everywhere.
+router.post(
+  '/:id/reset-password',
+  requireRole('owner', 'admin'),
+  validate(z.object({ password: z.string().min(8).max(200) }).strict()),
+  asyncHandler(async (req, res) => {
+    const target = await User.findOne({ _id: req.params.id, organization: req.user.organization });
+    if (!target) throw new HttpError(404, 'Employee not found');
+    const reason = whyCannotEdit(req.user.role, target);
+    if (reason) throw new HttpError(403, reason);
+    await User.updateOne({ _id: target._id }, { passwordHash: await bcrypt.hash(req.body.password, 12), passwordChangedAt: new Date() });
+    res.json({ message: `New password set for ${target.name}. Share it with them privately.` });
   })
 );
 
@@ -70,12 +88,7 @@ router.delete(
   '/:id/fingerprints',
   requireRole('owner', 'admin'),
   asyncHandler(async (req, res) => {
-    const user = await User.findOneAndUpdate(
-      { _id: req.params.id, organization: req.user.organization },
-      { webauthnCredentials: [], scannerLinks: [] },
-      { new: true }
-    );
-    if (!user) throw new HttpError(404, 'Employee not found');
+    await clearFingerprints({ orgId: req.user.organization, userId: req.params.id });
     res.json({ message: 'Fingerprints cleared' });
   })
 );

@@ -12,7 +12,7 @@ export const todayKey = (org, now = new Date()) => localParts(now, org.timezone)
 export async function getDayOverview(org, dateKey, { withAbsentees = false } = {}) {
   const [records, staff] = await Promise.all([
     Attendance.find({ organization: org._id, date: dateKey }).populate('user', 'name staffId department').sort({ clockIn: -1 }),
-    User.find({ organization: org._id, active: true, role: { $ne: 'owner' } }).select('name staffId department'),
+    User.find({ organization: org._id, active: true, role: { $nin: ['owner', 'student'] } }).select('name staffId department'),
   ]);
   const present = records.length;
   const late = records.filter((r) => r.status === 'late').length;

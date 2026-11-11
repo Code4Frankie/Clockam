@@ -1,6 +1,7 @@
 import { Attendance } from '../models/Attendance.js';
 import { HttpError } from '../utils/http.js';
 import { assertInsideGeofence } from '../utils/geo.js';
+import { assertAllowedNetwork } from '../utils/network.js';
 import { breakMinutes, closeOpenBreaks, decideBreak } from '../utils/attendanceMath.js';
 import { localParts } from '../utils/time.js';
 
@@ -8,9 +9,12 @@ import { localParts } from '../utils/time.js';
  * Starts or ends a break on today's record. Breaks are unpaid: they are subtracted from hours worked when the day closes.
  * The person must have clocked in and not yet clocked out.
  */
-export async function toggleBreak({ user, org, method, location }) {
+export async function toggleBreak({ user, org, method, location, ip }) {
   const now = new Date();
-  if (method !== 'scanner') assertInsideGeofence(org, location);
+  if (method !== 'scanner') {
+    assertInsideGeofence(org, location);
+    assertAllowedNetwork(org, ip);
+  }
   const { dateKey } = localParts(now, org.timezone);
   const record = await Attendance.findOne({ user: user._id, date: dateKey });
   const d = decideBreak(record, now);

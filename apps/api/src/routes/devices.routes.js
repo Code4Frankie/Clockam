@@ -5,11 +5,12 @@ import { z } from 'zod';
 import { Device } from '../models/Device.js';
 import { User } from '../models/User.js';
 import { requireAuth, requireRole } from '../middleware/auth.js';
+import { billingGate } from '../middleware/billing.js';
 import { validate } from '../middleware/validate.js';
 import { asyncHandler, HttpError } from '../utils/http.js';
 
 const router = Router();
-router.use(requireAuth, requireRole('owner', 'admin'));
+router.use(requireAuth, requireRole('owner', 'admin'), billingGate);
 
 router.get(
   '/',
@@ -21,16 +22,22 @@ router.get(
 // Registers a kiosk/scanner. The API key is shown ONCE; only its hash is stored.
 router.post(
   '/',
-  validate(z.object({ name: z.string().min(2), type: z.enum(['scanner', 'kiosk']).default('scanner') })),
+  validate(
+    z
+      .object({ name: z.string().min(2), type: z.enum(['scanner', 'kiosk', 'zkteco']).default('scanner'), serialNumber: z.string().trim().regex(/^[A-Za-z0-9]{4,32}$/, 'Serial number: 4-32 letters and numbers').optional() })
+      .refine((v) => v.type !== 'zkteco' || v.serialNumber, { message: 'Enter the unit serial number', path: ['serialNumber'] })
+  ),
   asyncHandler(async (req, res) => {
     const apiKey = crypto.randomBytes(24).toString('base64url');
     const device = await Device.create({
       organization: req.user.organization,
       name: req.body.name,
       type: req.body.type,
+      serialNumber: req.body.type === 'zkteco' ? req.body.serialNumber : undefined,
       apiKeyHash: await bcrypt.hash(apiKey, 10),
     });
-    res.status(201).json({ id: device._id, name: device.name, apiKey });
+    // ZKTeco units never use an API key (they are matched by serial number), so none is shown for them.
+    res.status(201).json({ id: device._id, name: device.name, type: device.type, ...(device.type === 'zkteco' ? {} : { apiKey }) });
   })
 );
 

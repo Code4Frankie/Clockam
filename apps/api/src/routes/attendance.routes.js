@@ -7,6 +7,7 @@ import { validate } from '../middleware/validate.js';
 import { clockUser } from '../services/clock.service.js';
 import { getAttendanceRange, getTodayOverview, applyManualCorrection, listMissingClockouts, fixMissingClockout, editAttendance, getDay } from '../services/attendance.service.js';
 import { toggleBreak } from '../services/break.service.js';
+import { billingGate } from '../middleware/billing.js';
 import { autoClockOutSweep } from '../middleware/autoClockOut.js';
 import { editDaySchema } from '../utils/attendanceEdit.js';
 import { asyncHandler, HttpError } from '../utils/http.js';
@@ -20,7 +21,7 @@ router.post(
   validate(z.object({ location: z.object({ lat: z.number(), lng: z.number() }).optional() })),
   asyncHandler(async (req, res) => {
     const org = await Organization.findById(req.user.organization);
-    const result = await clockUser({ user: req.user, org, method: 'device-biometric', location: req.body.location });
+    const result = await clockUser({ user: req.user, org, method: 'device-biometric', location: req.body.location, ip: req.ip });
     res.json(result);
   })
 );
@@ -31,7 +32,7 @@ router.post(
   validate(z.object({ location: z.object({ lat: z.number(), lng: z.number() }).optional() })),
   asyncHandler(async (req, res) => {
     const org = await Organization.findById(req.user.organization);
-    res.json(await toggleBreak({ user: req.user, org, method: 'device-biometric', location: req.body.location }));
+    res.json(await toggleBreak({ user: req.user, org, method: 'device-biometric', location: req.body.location, ip: req.ip }));
   })
 );
 
@@ -45,7 +46,7 @@ router.get(
 
 router.get(
   '/',
-  requireRole('owner', 'admin', 'manager'),
+  requireRole('owner', 'admin', 'manager'), billingGate,
   asyncHandler(async (req, res) => {
     const { from, to, userId } = req.query;
     res.json(await getAttendanceRange({ orgId: req.user.organization, from, to, userId }));
@@ -55,7 +56,7 @@ router.get(
 // Dashboard numbers for today.
 router.get(
   '/today',
-  requireRole('owner', 'admin', 'manager'),
+  requireRole('owner', 'admin', 'manager'), billingGate,
   asyncHandler(async (req, res) => {
     const org = await Organization.findById(req.user.organization);
     res.json(await getTodayOverview(org));
@@ -65,7 +66,7 @@ router.get(
 // Manual correction by an admin (e.g. forgot to clock out, scanner offline).
 router.post(
   '/manual',
-  requireRole('owner', 'admin'),
+  requireRole('owner', 'admin'), billingGate,
   validate(
     z.object({
       userId: z.string(),
@@ -82,10 +83,25 @@ router.post(
   })
 );
 
+// Clock-ins a manager may want to look at (close to the edge of the allowed distance).
+router.get(
+  '/flagged',
+  requireRole('owner', 'admin', 'manager'), billingGate,
+  asyncHandler(async (req, res) => {
+    const { from, to } = req.query;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(String(from)) || !/^\d{4}-\d{2}-\d{2}$/.test(String(to))) throw new HttpError(400, 'from and to (YYYY-MM-DD) are required');
+    const rows = await Attendance.find({ organization: req.user.organization, date: { $gte: from, $lte: to }, 'flags.0': { $exists: true } })
+      .populate('user', 'name staffId')
+      .sort({ date: -1, clockIn: -1 })
+      .limit(200);
+    res.json(rows);
+  })
+);
+
 // One person's day, for the Edit attendance screen.
 router.get(
   '/day',
-  requireRole('owner', 'admin'),
+  requireRole('owner', 'admin'), billingGate,
   asyncHandler(async (req, res) => {
     const { userId, date } = req.query;
     if (!/^[a-f\d]{24}$/i.test(String(userId)) || !/^\d{4}-\d{2}-\d{2}$/.test(String(date))) throw new HttpError(400, 'userId and date are required');
@@ -97,7 +113,7 @@ router.get(
 // Admin changes or adds a day's clock-in and clock-out. Reason required; history is kept.
 router.post(
   '/edit',
-  requireRole('owner', 'admin'),
+  requireRole('owner', 'admin'), billingGate,
   validate(editDaySchema),
   asyncHandler(async (req, res) => {
     const org = await Organization.findById(req.user.organization);
@@ -108,7 +124,7 @@ router.post(
 // Days where someone clocked in and never clocked out, with a suggested closing-time clock-out.
 router.get(
   '/missing-clockouts',
-  requireRole('owner', 'admin'),
+  requireRole('owner', 'admin'), billingGate,
   asyncHandler(async (req, res) => {
     const org = await Organization.findById(req.user.organization);
     res.json({ timezone: org.timezone, rows: await listMissingClockouts(org) });
@@ -118,7 +134,7 @@ router.get(
 // Sets the clock-out for one of those days. `time` is local workplace time, like 17:00.
 router.post(
   '/fix-clockout',
-  requireRole('owner', 'admin'),
+  requireRole('owner', 'admin'), billingGate,
   validate(
     z
       .object({

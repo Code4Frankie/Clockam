@@ -2,15 +2,19 @@ import { useEffect, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { api } from '../api.js';
 import { useAuth } from '../auth.jsx';
+import { ORG_TYPES } from '../orgTypes.js';
 
 const ZONES = ['Africa/Lagos', 'Africa/Accra', 'Africa/Nairobi', 'Africa/Johannesburg', 'Africa/Cairo', 'Europe/London', 'UTC'];
 
 const fromOrg = (o) => ({
+  type: o.type || 'workplace',
+  requireSelfie: o.requireSelfie !== false,
   timezone: o.timezone || 'Africa/Lagos',
   workStart: o.workStart || '08:00',
   workEnd: o.workEnd || '17:00',
   graceMinutes: String(o.graceMinutes ?? 15),
   autoHours: String(o.autoClockOutHours ?? 0),
+  networks: (o.allowedNetworks || []).join('\n'),
   geoEnabled: !!o.geofence?.enabled,
   lat: o.geofence?.lat != null ? String(o.geofence.lat) : '',
   lng: o.geofence?.lng != null ? String(o.geofence.lng) : '',
@@ -39,6 +43,15 @@ export default function Settings() {
     );
   }
 
+  async function addMyNetwork() {
+    setMsg({ type: '', text: '' });
+    try {
+      const { ip } = await api('/organization/my-ip');
+      setF((cur) => (cur.networks.split('\n').map((s) => s.trim()).includes(ip) ? cur : { ...cur, networks: [cur.networks.trim(), ip].filter(Boolean).join('\n') }));
+      setMsg({ type: 'ok', text: `Added ${ip}. Check it matches your public IP address (search "what is my IP"), then save.` });
+    } catch (err) { setMsg({ type: 'err', text: err.message }); }
+  }
+
   async function save(e) {
     e.preventDefault();
     setMsg({ type: '', text: '' });
@@ -48,7 +61,7 @@ export default function Settings() {
       if (f.lat !== '' && f.lng !== '') { geofence.lat = Number(f.lat); geofence.lng = Number(f.lng); }
       await api('/organization/settings', {
         method: 'PATCH',
-        body: { timezone: f.timezone, workStart: f.workStart, workEnd: f.workEnd, graceMinutes: Number(f.graceMinutes), autoClockOutHours: Number(f.autoHours), geofence },
+        body: { type: f.type, requireSelfie: f.requireSelfie, timezone: f.timezone, workStart: f.workStart, workEnd: f.workEnd, graceMinutes: Number(f.graceMinutes), autoClockOutHours: Number(f.autoHours), allowedNetworks: f.networks.split('\n').map((s) => s.trim()).filter(Boolean), geofence },
       });
       await refresh();
       setMsg({ type: 'ok', text: 'Saved. The new rules apply to clock-ins from now on. Past records are not changed.' });
@@ -66,6 +79,20 @@ export default function Settings() {
       <p className="muted">These rules decide who is marked late and where staff can clock in from.</p>
 
       <form className="card" onSubmit={save}>
+        <h2>Type</h2>
+        <label>This ClockAm is for a
+          <select value={f.type} onChange={set('type')}>
+            {ORG_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+          </select>
+        </label>
+        {f.type === 'school' && (
+          <>
+            <label className="check"><input type="checkbox" checked={f.requireSelfie} onChange={set('requireSelfie')} /> Students take a selfie when marking attendance (the lecturer can view it for 30 days)</label>
+            {!f.geoEnabled && !f.networks.trim() && (
+              <p className="warn"><strong>No campus rule set.</strong> Without a campus location or Wi-Fi rule below, a student could mark attendance from outside the classroom if a friend sends them the code. Turn on the location check, add the campus Wi-Fi, or both.</p>
+            )}
+          </>
+        )}
         <h2>Work hours</h2>
         <div className="grid2">
           <label>Start time<input type="time" value={f.workStart} onChange={set('workStart')} required /></label>
@@ -102,6 +129,16 @@ export default function Settings() {
         <p className="muted">
           Stand at the workplace when you use this. Staff will be asked to share their location when they clock in. USB and handheld
           scanners are not checked, because they stay at the workplace.
+        </p>
+
+        <h2>Allowed networks</h2>
+        <label>Only allow phones and laptops on these networks to clock in (one per line, leave empty for no rule)
+          <textarea rows={3} value={f.networks} onChange={set('networks')} placeholder={'41.58.10.7\n41.58.20.0/24'} />
+        </label>
+        <button type="button" className="btn ghost" onClick={addMyNetwork}>Add the network I am on now</button>
+        <p className="muted">
+          Use the workplace's public internet address. Do this while connected to the workplace Wi-Fi. Staff on mobile data will be refused,
+          and if your internet provider changes the address you must update it here. USB scanners and ZKTeco units are never checked.
         </p>
 
         {msg.text && <p role="status" className={msg.type === 'ok' ? 'success' : 'error'}>{msg.text}</p>}

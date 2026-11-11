@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import rateLimit from 'express-rate-limit';
 import bcrypt from 'bcryptjs';
 import { z } from 'zod';
 import { Organization } from '../models/Organization.js';
@@ -6,6 +7,11 @@ import { User } from '../models/User.js';
 import { signToken, requireAuth } from '../middleware/auth.js';
 import { validate } from '../middleware/validate.js';
 import { asyncHandler, HttpError } from '../utils/http.js';
+import { env } from '../config/env.js';
+import { PasswordReset } from '../models/PasswordReset.js';
+import { hashToken, newResetToken, resetEmail, resetExpiry, RESET_MINUTES } from '../utils/passwordReset.js';
+import { mailConfigured, sendMail } from '../utils/mailer.js';
+import { isPlatformAdmin } from '../middleware/platformAdmin.js';
 
 const router = Router();
 
@@ -23,11 +29,13 @@ const publicUser = (u) => ({
   role: u.role,
   organization: u.organization,
   hasFingerprint: (u.webauthnCredentials?.length || 0) > 0,
+  isPlatformAdmin: isPlatformAdmin(u),
 });
 
 const registerOrgSchema = z.object({
   organizationName: z.string().min(2),
   timezone: z.string().default('Africa/Lagos'),
+  type: z.enum(['workplace', 'school', 'government']).default('workplace'),
   name: z.string().min(2),
   email: z.string().email(),
   password: z.string().min(8),
@@ -38,11 +46,11 @@ router.post(
   '/register-org',
   validate(registerOrgSchema),
   asyncHandler(async (req, res) => {
-    const { organizationName, timezone, name, email, password } = req.body;
+    const { organizationName, timezone, type, name, email, password } = req.body;
     let slug = slugify(organizationName);
     if (await Organization.exists({ slug })) slug = `${slug}-${Math.random().toString(36).slice(2, 6)}`;
 
-    const org = await Organization.create({ name: organizationName, slug, timezone });
+    const org = await Organization.create({ name: organizationName, slug, timezone, type });
     const user = await User.create({
       organization: org._id,
       name,
@@ -68,7 +76,7 @@ router.post(
     const { orgSlug, email, password } = req.body;
     const org = await Organization.findOne({ slug: orgSlug.toLowerCase() });
     const user = org && (await User.findOne({ organization: org._id, email }).select('+passwordHash'));
-    if (!user || !user.active || !(await bcrypt.compare(password, user.passwordHash))) {
+    if (!user || !user.active || user.role === 'student' || !(await bcrypt.compare(password, user.passwordHash))) {
       throw new HttpError(401, 'Invalid workplace, email or password');
     }
     res.json({ token: signToken(user), user: publicUser(user), organization: org });
@@ -81,6 +89,51 @@ router.get(
   asyncHandler(async (req, res) => {
     const organization = await Organization.findById(req.user.organization);
     res.json({ user: publicUser(req.user), organization });
+  })
+);
+
+const resetLimiter = rateLimit({ windowMs: 15 * 60 * 1000, limit: 8, standardHeaders: true, legacyHeaders: false });
+
+// Step 1: ask for a reset link. The answer never says whether the workplace or email exists.
+router.post(
+  '/forgot-password',
+  resetLimiter,
+  validate(z.object({ orgSlug: z.string().min(1), email: z.string().email() })),
+  asyncHandler(async (req, res) => {
+    if (!mailConfigured(env.mail)) {
+      throw new HttpError(503, 'Password reset by email is not set up yet. Ask your workplace admin to set a new password for you.');
+    }
+    const org = await Organization.findOne({ slug: req.body.orgSlug.toLowerCase() });
+    const user = org && (await User.findOne({ organization: org._id, email: req.body.email.toLowerCase(), active: true }));
+    if (user) {
+      await PasswordReset.deleteMany({ user: user._id });
+      const { token, hash } = newResetToken();
+      await PasswordReset.create({ user: user._id, tokenHash: hash, expiresAt: resetExpiry() });
+      const link = `${env.webAppUrl}/reset-password?token=${token}`;
+      try {
+        await sendMail(env.mail, { to: user.email, ...resetEmail({ name: user.name, link, minutes: RESET_MINUTES }) });
+      } catch (e) {
+        console.error('Password reset email failed:', e.message);
+      }
+    }
+    res.json({ message: 'If that workplace and email exist, we have sent a reset link. It expires in 30 minutes.' });
+  })
+);
+
+// Step 2: choose a new password with the emailed token. Signs out every other session.
+router.post(
+  '/reset-password',
+  resetLimiter,
+  validate(z.object({ token: z.string().min(20).max(200), password: z.string().min(8).max(200) })),
+  asyncHandler(async (req, res) => {
+    const reset = await PasswordReset.findOne({ tokenHash: hashToken(req.body.token), expiresAt: { $gt: new Date() } });
+    const user = reset && (await User.findById(reset.user).select('+passwordHash'));
+    if (!user || !user.active) throw new HttpError(400, 'This reset link is not valid or has expired. Ask for a new one.');
+    user.passwordHash = await bcrypt.hash(req.body.password, 12);
+    user.passwordChangedAt = new Date();
+    await user.save();
+    await PasswordReset.deleteMany({ user: user._id });
+    res.json({ message: 'Password changed. You can sign in now.' });
   })
 );
 

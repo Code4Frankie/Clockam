@@ -11,13 +11,21 @@ export default function App() {
   useEffect(() => { loadSession().then(setSession); }, []);
 
   const signedIn = useCallback(async (s) => { await saveSession(s); setSession(s); }, []);
+  const changeOrg = useCallback(async (organization) => {
+    setSession((s) => {
+      if (!s) return s;
+      const next = { ...s, organization };
+      saveSession(next);
+      return next;
+    });
+  }, []);
   const signOut = useCallback(async () => { await clearSession(); setSession(null); }, []);
 
   if (session === undefined) return <View style={{ flex: 1, justifyContent: 'center' }}><ActivityIndicator /></View>;
   return (
     <>
       <StatusBar style="dark" />
-      {session ? <Home session={session} onSignOut={signOut} /> : <Login onSignedIn={signedIn} />}
+      {session ? <Home session={session} onSignOut={signOut} onOrgChange={changeOrg} /> : <Login onSignedIn={signedIn} />}
     </>
   );
 }

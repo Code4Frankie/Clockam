@@ -121,3 +121,17 @@ tr.dim { opacity: 0.5; } .actions { display: flex; gap: 6px; flex-wrap: wrap; }
 .grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0 16px; }
 label.check { flex-direction: row; align-items: center; gap: 10px; font-weight: 500; }
 label.check input { width: 18px; height: 18px; }
+
+textarea { width: 100%; box-sizing: border-box; padding: 10px 12px; border: 1px solid #d9cfce; border-radius: 6px; font: inherit; resize: vertical; }
+
+/* School mode */
+.center-text { text-align: center; }
+.class-screen { text-align: center; max-width: 720px; margin: 0 auto; }
+.class-qr { width: min(420px, 80vw); height: auto; background: #fff; padding: 8px; border: 1px solid var(--line); border-radius: 12px; }
+.class-code { font-size: clamp(44px, 12vw, 84px); font-weight: 800; letter-spacing: 0.08em; font-variant-numeric: tabular-nums; margin: 8px 0; }
+.class-count { font-size: 22px; }
+.warn { background: #fff4e5; border: 1px solid #f0b35c; border-radius: 8px; padding: 10px 12px; color: #6b4300; margin: 8px 0; }
+.check { display: flex; gap: 8px; align-items: flex-start; }
+.check input { width: auto; margin-top: 4px; }
+.selfie-prev { width: 120px; height: 120px; object-fit: cover; border-radius: 50%; border: 2px solid var(--line); display: block; margin: 8px auto; }
+.thumb { width: 56px; height: 56px; object-fit: cover; border-radius: 8px; }

@@ -30,3 +30,10 @@ export async function downloadFile(path, filename) {
 
 export const fmtTime = (d) => (d ? new Date(d).toLocaleTimeString('en-NG', { hour: '2-digit', minute: '2-digit' }) : '—');
 export const MANAGER_ROLES = ['owner', 'admin', 'manager'];
+
+// Loads an image that needs the sign-in token (an <img> tag cannot send it) and returns a temporary URL.
+export async function fetchBlobUrl(path) {
+  const res = await fetch(`${BASE}${path}`, { headers: { Authorization: `Bearer ${getToken()}` } });
+  if (!res.ok) throw new Error('Could not load the photo');
+  return URL.createObjectURL(await res.blob());
+}

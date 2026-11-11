@@ -24,6 +24,9 @@ export const requireAuth = asyncHandler(async (req, _res, next) => {
 
   const user = await User.findById(payload.sub);
   if (!user || !user.active) throw new HttpError(401, 'Account not found or disabled');
+  if (user.passwordChangedAt && payload.iat < Math.floor(user.passwordChangedAt.getTime() / 1000)) {
+    throw new HttpError(401, 'Your password was changed. Please sign in again.');
+  }
   req.user = user;
   next();
 });
