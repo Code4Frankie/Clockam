@@ -223,7 +223,7 @@ Limits to know
 
 ## Billing (Paystack)
 
-Prices are not in the code. A platform admin (a user ID in `PLATFORM_ADMIN_USER_IDS`) opens **Plans and prices** in the app and sets: a one-time setup fee, VAT %, free-trial days, and plans by number of people (ranges must run on from each other, the last can have no limit). Amounts are entered in naira and stored in kobo.
+Prices are not in the code. A platform admin (a user ID in `PLATFORM_ADMIN_USER_IDS`) opens **Packages** in the app and makes the packages owners can subscribe to: name, short description, price per 30 days, setup fee (charged once with the first payment on that package), and the most people it allows. VAT % and free-trial days are set on the same page. Amounts are entered in naira and stored in kobo.
 
 - **Nothing is charged or locked** until at least one plan exists. Even then, admin pages are only locked when `BILLING_ENFORCED=true` on Render. Set that after you have tested payment.
 - **Counting people:** active accounts other than the owner (for a school this includes students).
@@ -236,3 +236,9 @@ Prices are not in the code. A platform admin (a user ID in `PLATFORM_ADMIN_USER_
 - In a school, the owner and admins see every course and class. A lecturer (manager role) sees, starts and reports only on courses and classes they created.
 - The AI assistant is now covered by the billing lock like the other admin features.
 - The mobile app has Android build config (`apps/mobile/eas.json`) and a Google Play checklist (`apps/mobile/PLAY_STORE.md`).
+
+### Platform admin: workplaces, suspension, packages
+
+- **Workplaces page** (platform admins only): one row per workplace with created date and time, staff (and students for schools), package (free trial with days left, the plan last paid, or payment due), last activity, owner name and email, and status.
+- **Suspend / Reinstate:** a platform admin can suspend a workplace with a reason. Suspended workplaces cannot sign in, clock in at the kiosk, use scanners or ZKTeco units, or mark class attendance. Data is kept. Platform admins are never locked out by a suspension, and you cannot suspend your own workplace.
+- **Who controls what:** packages, VAT and trial length are set only by platform admins under **Packages**. From **Workplaces → Billing** a platform admin can see any workplace's billing view, extend its trial, assign a package or waive billing. The workplace owner and workplace admins can see the **Billing** page; only the owner chooses a package and pays. The next payment shows only the subscribed package (plus its setup fee if it has one, plus VAT). Platform admins' own workplaces, and workplaces with billing waived, are never charged or locked.

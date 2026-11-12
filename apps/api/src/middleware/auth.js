@@ -4,6 +4,8 @@ import { env } from '../config/env.js';
 import { User } from '../models/User.js';
 import { Device } from '../models/Device.js';
 import { HttpError, asyncHandler } from '../utils/http.js';
+import { isPlatformAdmin } from './platformAdmin.js';
+import { assertNotSuspended } from '../services/suspension.service.js';
 
 export const signToken = (user) =>
   jwt.sign({ sub: String(user._id), org: String(user.organization), role: user.role }, env.JWT_SECRET, {
@@ -27,6 +29,7 @@ export const requireAuth = asyncHandler(async (req, _res, next) => {
   if (user.passwordChangedAt && payload.iat < Math.floor(user.passwordChangedAt.getTime() / 1000)) {
     throw new HttpError(401, 'Your password was changed. Please sign in again.');
   }
+  if (!isPlatformAdmin(user)) await assertNotSuspended(user.organization); // Frankiecode staff are never locked out by a suspension
   req.user = user;
   next();
 });
@@ -48,6 +51,7 @@ export const requireDevice = asyncHandler(async (req, _res, next) => {
   if (!device || !device.active || !(await bcrypt.compare(String(key), device.apiKeyHash))) {
     throw new HttpError(401, 'Invalid device credentials');
   }
+  await assertNotSuspended(device.organization);
   device.lastSeenAt = new Date();
   await device.save();
   req.device = device;

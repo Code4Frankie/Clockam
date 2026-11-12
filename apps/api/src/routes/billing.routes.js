@@ -9,7 +9,7 @@ import { requirePlatformAdmin } from '../middleware/platformAdmin.js';
 import { validate } from '../middleware/validate.js';
 import { asyncHandler, HttpError } from '../utils/http.js';
 import { planSchema, paystackSignatureOk } from '../utils/billing.js';
-import { clearPlanCache, getPlan, orgBilling, settleFromTransaction, startCheckout, verifyReference } from '../services/billing.service.js';
+import { clearPlanCache, billingSummary, getPlan, settleFromTransaction, startCheckout, verifyReference } from '../services/billing.service.js';
 
 const router = Router();
 
@@ -31,18 +31,30 @@ router.put('/admin/plan', requireAuth, requirePlatformAdmin, validate(planSchema
   res.json(await getPlan());
 }));
 
-/* Owner or admin: see what is owed and pay */
+/* Owner and workplace admin see billing. Only the owner subscribes and pays. */
 router.use(requireAuth, requireRole('owner', 'admin'));
 
 router.get('/status', asyncHandler(async (req, res) => {
   const org = await Organization.findById(req.user.organization);
-  const { plan, workers, state, charge } = await orgBilling(org);
+  const s = await billingSummary(org);
   const payments = await Payment.find({ organization: org._id, status: 'success' }).sort({ paidAt: -1 }).limit(20);
   res.json({
-    enforced: env.billingEnforced, canPay: !!env.paystackSecretKey, plan, workers, state, charge,
-    setupPaid: !!org.billing?.setupPaid,
+    enforced: env.billingEnforced, canPay: !!env.paystackSecretKey && req.user.role === 'owner', isOwner: req.user.role === 'owner', ...s,
     payments: payments.map((p) => ({ reference: p.reference, amount: p.amount, paidAt: p.paidAt, tierName: p.breakdown?.tierName })),
   });
+}));
+
+// The owner chooses which package to subscribe to. Only that package appears in the next payment.
+router.post('/subscribe', requireRole('owner'), validate(z.object({ packageName: z.string().trim().min(1).max(40) }).strict()), asyncHandler(async (req, res) => {
+  const org = await Organization.findById(req.user.organization);
+  const plan = await getPlan();
+  if (!plan.packages.some((x) => x.name === req.body.packageName)) throw new HttpError(400, 'That package does not exist');
+  const pkg = plan.packages.find((x) => x.name === req.body.packageName);
+  const { workers } = await billingSummary(org);
+  if (pkg.maxPeople != null && workers > pkg.maxPeople) throw new HttpError(400, `${pkg.name} allows up to ${pkg.maxPeople} people and you have ${workers}.`);
+  org.set('billing.packageName', pkg.name);
+  await org.save();
+  res.json({ ok: true });
 }));
 
 router.post('/checkout', requireRole('owner'), validate(z.object({ provider: z.enum(['paystack', 'opay']) }).strict()), asyncHandler(async (req, res) => {

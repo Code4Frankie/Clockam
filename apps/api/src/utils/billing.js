@@ -6,62 +6,61 @@ export const GRACE_DAYS = 3; // after the paid period ends, admin features keep 
 export const PERIOD_DAYS = 30; // each payment buys 30 days
 const DAY = 24 * 3600 * 1000;
 
-const tierSchema = z.object({
+const packageSchema = z.object({
   name: z.string().trim().min(1).max(40),
-  minWorkers: z.number().int().min(1),
-  maxWorkers: z.number().int().min(1).nullable(), // null = no upper limit
+  description: z.string().trim().max(120).default(''),
   monthlyPrice: z.number().int().min(0).max(1_000_000_000),
+  setupFee: z.number().int().min(0).max(1_000_000_000), // charged once, with the first payment on this package
+  maxPeople: z.number().int().min(1).nullable(), // null = no limit
 }).strict();
 
-// The plan prices are set by Frankiecode in the app, never in code. Tiers must cover worker counts with no gaps or overlaps.
+// Packages are made by Frankiecode in the app, never in code. An owner subscribes to one, and only that one is billed.
 export const planSchema = z
   .object({
-    setupFee: z.number().int().min(0).max(1_000_000_000),
     vatPercent: z.number().min(0).max(100),
-    trialDays: z.number().int().min(0).max(90),
-    tiers: z.array(tierSchema).max(12),
+    trialDays: z.number().int().min(0).max(365),
+    packages: z.array(packageSchema).max(12),
   })
   .strict()
   .superRefine((plan, ctx) => {
-    const t = [...plan.tiers].sort((a, b) => a.minWorkers - b.minWorkers);
-    const bad = (message) => ctx.addIssue({ code: 'custom', path: ['tiers'], message });
-    t.forEach((x, i) => {
-      if (x.maxWorkers !== null && x.maxWorkers < x.minWorkers) bad(`"${x.name}": the top of the range is below the bottom`);
-      if (i === 0 && x.minWorkers !== 1) bad('The first range must start at 1 worker');
-      if (i > 0) {
-        const prev = t[i - 1];
-        if (prev.maxWorkers === null) bad('Only the last range can have no upper limit');
-        else if (x.minWorkers !== prev.maxWorkers + 1) bad(`Ranges must follow on from each other: "${x.name}" should start at ${prev.maxWorkers + 1}`);
-      }
-    });
-    if (new Set(t.map((x) => x.name.toLowerCase())).size !== t.length) bad('Each range needs a different name');
+    const names = plan.packages.map((x) => x.name.toLowerCase());
+    if (new Set(names).size !== names.length) ctx.addIssue({ code: 'custom', path: ['packages'], message: 'Each package needs a different name' });
   });
 
-export function pickTier(tiers, workers) {
-  const n = Math.max(1, workers);
-  return [...tiers].sort((a, b) => a.minWorkers - b.minWorkers).find((t) => n >= t.minWorkers && (t.maxWorkers === null || n <= t.maxWorkers)) || null;
-}
-
-// What an organisation owes for its next period. The setup fee is charged once, with the first payment.
-export function computeCharge({ plan, workers, setupPaid }) {
-  const tier = pickTier(plan.tiers, workers);
-  if (!tier) return null;
-  const setupFee = setupPaid ? 0 : plan.setupFee;
-  const subtotal = tier.monthlyPrice + setupFee;
+// What the subscribed package costs for the next period. The package's setup fee is charged once, with the first payment.
+// Nothing else is added: no subscription means no charge.
+export function computeCharge({ plan, packageName, workers, setupPaid }) {
+  const pkg = plan.packages.find((x) => x.name === packageName);
+  if (!pkg) return null;
+  const setupFee = setupPaid ? 0 : pkg.setupFee;
+  const subtotal = pkg.monthlyPrice + setupFee;
   const vat = Math.round((subtotal * plan.vatPercent) / 100);
-  return { tierName: tier.name, workers, monthly: tier.monthlyPrice, setupFee, subtotal, vat, total: subtotal + vat };
+  const overCapacity = pkg.maxPeople != null && workers > pkg.maxPeople;
+  return { packageName: pkg.name, workers, monthly: pkg.monthlyPrice, setupFee, subtotal, vat, total: subtotal + vat, maxPeople: pkg.maxPeople, overCapacity };
 }
 
-// free: no prices configured yet, nothing is charged. trial / active: fine. grace: overdue but still working. locked: admin features off.
-export function billingState({ plan, billing, createdAt, now = new Date(), enforced = false }) {
-  if (!plan?.tiers?.length) return { status: 'free', locked: false };
+// exempt: Frankiecode's own accounts or a workplace with billing waived. free: no packages made yet, nothing is charged.
+// trial / active: fine. grace: overdue but still working. overdue: admin features lock, but only when billing is enforced.
+export function billingState({ plan, billing, createdAt, now = new Date(), enforced = false, exempt = false }) {
+  if (exempt || billing?.exempt) return { status: 'exempt', locked: false };
+  if (!plan?.packages?.length) return { status: 'free', locked: false };
   const paidUntil = billing?.paidUntil ? new Date(billing.paidUntil) : null;
   if (paidUntil && paidUntil > now) return { status: 'active', locked: false, until: paidUntil, daysLeft: Math.ceil((paidUntil - now) / DAY) };
-  const trialEnds = new Date(new Date(createdAt).getTime() + plan.trialDays * DAY);
-  if (!paidUntil && now < trialEnds) return { status: 'trial', locked: false, until: trialEnds, daysLeft: Math.ceil((trialEnds - now) / DAY) };
-  const since = paidUntil || trialEnds;
+  const trialEnds = trialEndDate({ billing, createdAt, plan });
+  if ((!paidUntil || billing?.trialEndsAt) && now < trialEnds) return { status: 'trial', locked: false, until: trialEnds, daysLeft: Math.ceil((trialEnds - now) / DAY) };
+  const since = paidUntil && paidUntil > trialEnds ? paidUntil : trialEnds;
   if (now - since <= GRACE_DAYS * DAY) return { status: 'grace', locked: false, until: new Date(since.getTime() + GRACE_DAYS * DAY) };
   return { status: 'overdue', locked: !!enforced, since };
+}
+
+// The trial normally lasts trialDays from sign-up. A platform admin can extend it, which is stored as an explicit end date.
+export const trialEndDate = ({ billing, createdAt, plan }) =>
+  billing?.trialEndsAt ? new Date(billing.trialEndsAt) : new Date(new Date(createdAt).getTime() + (plan?.trialDays ?? 0) * DAY);
+
+// Adding days starts from the end of the current trial, or from today if the trial is already over.
+export function extendTrial({ current, days, now = new Date() }) {
+  const start = current && new Date(current) > now ? new Date(current) : now;
+  return new Date(start.getTime() + days * DAY);
 }
 
 // A payment extends from the end of the current period if still running, otherwise from today.

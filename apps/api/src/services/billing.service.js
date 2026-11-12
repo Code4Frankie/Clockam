@@ -13,19 +13,37 @@ export function clearPlanCache() { cache = { at: 0, plan: null }; }
 export async function getPlan() {
   if (Date.now() - cache.at < 30000 && cache.plan) return cache.plan;
   const doc = await PlanConfig.findOne({ key: 'default' }).lean();
-  const plan = { setupFee: doc?.setupFee ?? 0, vatPercent: doc?.vatPercent ?? 0, trialDays: doc?.trialDays ?? 0, tiers: doc?.tiers ?? [] };
+  let packages = doc?.packages ?? [];
+  // Prices saved before packages existed (worker-count tiers with one global setup fee) are carried over as packages.
+  if (!packages.length && doc?.tiers?.length) {
+    packages = doc.tiers.map((t) => ({ name: t.name, description: '', monthlyPrice: t.monthlyPrice, setupFee: doc.setupFee ?? 0, maxPeople: t.maxWorkers ?? null }));
+  }
+  const plan = { vatPercent: doc?.vatPercent ?? 0, trialDays: doc?.trialDays ?? 0, packages };
   cache = { at: Date.now(), plan };
   return plan;
 }
 
 export const countWorkers = (orgId) => User.countDocuments({ organization: orgId, active: true, role: { $ne: 'owner' } });
 
-export async function orgBilling(org) {
+// Frankiecode staff and workplaces with billing waived are never charged or locked.
+export async function isBillingExempt(org) {
+  if (org.billing?.exempt) return true;
+  if (!env.platformAdminIds.length) return false;
+  return !!(await User.exists({ organization: org._id, _id: { $in: env.platformAdminIds.filter((id) => /^[a-f0-9]{24}$/i.test(id)) } }));
+}
+
+// Everything the billing screens need for one workplace. Only the subscribed package produces a charge.
+export async function billingSummary(org) {
   const plan = await getPlan();
   const workers = await countWorkers(org._id);
-  const state = billingState({ plan, billing: org.billing, createdAt: org.createdAt, enforced: env.billingEnforced });
-  const charge = plan.tiers.length ? computeCharge({ plan, workers, setupPaid: !!org.billing?.setupPaid }) : null;
-  return { plan, workers, state, charge };
+  const exempt = await isBillingExempt(org);
+  const state = billingState({ plan, billing: org.billing, createdAt: org.createdAt, enforced: env.billingEnforced, exempt });
+  const subscribed = org.billing?.packageName || null;
+  const charge = exempt ? null : computeCharge({ plan, packageName: subscribed, workers, setupPaid: !!org.billing?.setupPaid });
+  return {
+    plan, workers, state, charge, exempt, subscribed,
+    trialEndsAt: org.billing?.trialEndsAt || null, setupPaid: !!org.billing?.setupPaid,
+  };
 }
 
 const PAYSTACK = 'https://api.paystack.co';
@@ -39,13 +57,14 @@ async function paystack(path, init = {}) {
 
 // Creates a pending payment for exactly what the server says is owed, then asks Paystack for a checkout link.
 export async function startCheckout({ org, user }) {
-  const { charge } = await orgBilling(org);
-  if (!charge) throw new HttpError(400, 'No price applies to your number of staff yet. Contact Frankiecode Solutions.');
+  const { charge } = await billingSummary(org);
+  if (!charge) throw new HttpError(400, 'Choose a package first.');
+  if (charge.overCapacity) throw new HttpError(400, `Your package allows up to ${charge.maxPeople} people and you have ${charge.workers}. Choose a bigger package.`);
   if (charge.total <= 0) throw new HttpError(400, 'Nothing to pay');
   const reference = `ca_${crypto.randomBytes(12).toString('hex')}`;
   const payment = await Payment.create({
     organization: org._id, provider: 'paystack', reference, amount: charge.total,
-    breakdown: { tierName: charge.tierName, workers: charge.workers, monthly: charge.monthly, setupFee: charge.setupFee, vat: charge.vat },
+    breakdown: { tierName: charge.packageName, workers: charge.workers, monthly: charge.monthly, setupFee: charge.setupFee, vat: charge.vat },
   });
   const data = await paystack('/transaction/initialize', {
     method: 'POST',
@@ -62,7 +81,8 @@ export async function settleFromTransaction(tx) {
   const won = await Payment.findOneAndUpdate({ _id: payment._id, status: 'pending' }, { status: 'success', paidAt: new Date() }, { new: true });
   if (!won) return payment; // already settled
   const org = await Organization.findById(payment.organization);
-  org.billing = { paidUntil: extendPaidUntil(org.billing?.paidUntil), setupPaid: true };
+  org.set('billing.paidUntil', extendPaidUntil(org.billing?.paidUntil));
+  org.set('billing.setupPaid', true);
   await org.save();
   return won;
 }

@@ -12,6 +12,7 @@ import { PasswordReset } from '../models/PasswordReset.js';
 import { hashToken, newResetToken, resetEmail, workplaceIdEmail, resetExpiry, RESET_MINUTES } from '../utils/passwordReset.js';
 import { mailConfigured, sendMail } from '../utils/mailer.js';
 import { isPlatformAdmin } from '../middleware/platformAdmin.js';
+import { orgIsSuspended, SUSPENDED_MESSAGE } from '../utils/suspension.js';
 
 const router = Router();
 
@@ -76,6 +77,7 @@ router.post(
     const { orgSlug, email, password } = req.body;
     const org = await Organization.findOne({ slug: orgSlug.toLowerCase() });
     const user = org && (await User.findOne({ organization: org._id, email }).select('+passwordHash'));
+    if (user && orgIsSuspended(org) && !isPlatformAdmin(user)) throw new HttpError(403, SUSPENDED_MESSAGE);
     if (!user || !user.active || user.role === 'student' || !(await bcrypt.compare(password, user.passwordHash))) {
       throw new HttpError(401, 'Invalid workplace, email or password');
     }

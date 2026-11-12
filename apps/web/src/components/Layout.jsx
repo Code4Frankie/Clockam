@@ -9,9 +9,10 @@ export default function Layout() {
   const { user, organization, logout } = useAuth();
   const isManager = MANAGER_ROLES.includes(user.role);
   const isAdmin = ['owner', 'admin'].includes(user.role);
+  const isOwner = user.role === 'owner';
   const [bill, setBill] = useState(null);
   useEffect(() => { if (isAdmin) api('/billing/status').then((d) => setBill(d.state)).catch(() => {}); }, [isAdmin]);
-  const billMsg = !bill ? '' : bill.status === 'overdue' ? 'Your ClockAm subscription has expired. Pay under Billing to keep admin pages working. Clock-in is not affected.' : bill.status === 'grace' ? 'Your ClockAm payment is due.' : bill.status === 'trial' && bill.daysLeft <= 3 ? `Your free trial ends in ${bill.daysLeft} ${bill.daysLeft === 1 ? 'day' : 'days'}.` : '';
+  const billMsg = !bill || bill.status === 'exempt' ? '' : bill.status === 'overdue' ? 'Your ClockAm subscription has expired. The owner can pay under Billing to keep admin pages working. Clock-in is not affected.' : bill.status === 'grace' ? 'Your ClockAm payment is due.' : bill.status === 'trial' && bill.daysLeft <= 3 ? `Your free trial ends in ${bill.daysLeft} ${bill.daysLeft === 1 ? 'day' : 'days'}.` : '';
 
   return (
     <div className="shell">
@@ -32,7 +33,7 @@ export default function Layout() {
           {isAdmin && <NavLink to="/billing">Billing</NavLink>}
           <NavLink to="/me">My fingerprint</NavLink>
           {user.isPlatformAdmin && <NavLink to="/admin/workplaces">Workplaces</NavLink>}
-          {user.isPlatformAdmin && <NavLink to="/admin/billing">Plans and prices</NavLink>}
+          {user.isPlatformAdmin && <NavLink to="/admin/billing">Packages</NavLink>}
           {user.isPlatformAdmin && <NavLink to="/admin/seo">Site audit</NavLink>}
           <a href={`/kiosk/${organization?.slug}`} target="_blank" rel="noreferrer">Open kiosk ↗</a>
         </nav>

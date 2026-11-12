@@ -6,8 +6,12 @@ const organizationSchema = new mongoose.Schema(
     slug: { type: String, required: true, unique: true, lowercase: true, trim: true },
     type: { type: String, enum: ['workplace', 'school', 'government'], default: 'workplace' }, // workplace = business
     requireSelfie: { type: Boolean, default: true }, // schools: students take a selfie when marking attendance
+    suspended: { at: Date, by: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }, reason: String },
     billing: {
       paidUntil: Date,
+      packageName: String, // the package the owner subscribed to
+      trialEndsAt: Date, // set when a platform admin extends the trial
+      exempt: { type: Boolean, default: false }, // billing waived by a platform admin
       setupPaid: { type: Boolean, default: false },
     },
     timezone: { type: String, default: 'Africa/Lagos' },

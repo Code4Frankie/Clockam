@@ -3,6 +3,7 @@ import express from 'express';
 import rateLimit from 'express-rate-limit';
 import { env } from '../config/env.js';
 import { Device } from '../models/Device.js';
+import { orgIsSuspended } from '../utils/suspension.js';
 import { Organization } from '../models/Organization.js';
 import { recordPunches } from '../services/zkteco.service.js';
 import { asyncHandler } from '../utils/http.js';
@@ -36,6 +37,7 @@ router.post(
   asyncHandler(async (req, res) => {
     if (req.query.table === 'ATTLOG') {
       const org = await Organization.findById(req.unit.organization);
+      if (orgIsSuspended(org)) return text(res, 200, 'OK'); // suspended: punches are not recorded
       const { punches } = parseAttLog(typeof req.body === 'string' ? req.body : '', org.timezone);
       await recordPunches({ device: req.unit, org, punches });
     }

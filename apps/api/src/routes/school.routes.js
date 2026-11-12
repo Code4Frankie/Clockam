@@ -27,6 +27,7 @@ import { assertInsideGeofence, nearLimit } from '../utils/geo.js';
 import { assertAllowedNetwork } from '../utils/network.js';
 import { formatLocal } from '../utils/time.js';
 import { csvLine } from '../utils/csv.js';
+import { orgIsSuspended, SUSPENDED_MESSAGE } from '../utils/suspension.js';
 import { courseScope, sessionScope } from '../utils/scope.js';
 import { currentCode, codeValid, newSessionSecret } from '../utils/classCode.js';
 import {
@@ -52,6 +53,7 @@ const validId = (id) => mongoose.isValidObjectId(id);
 async function schoolBySlug(slug) {
   const org = await Organization.findOne({ slug: String(slug).toLowerCase() });
   if (!org || org.type !== 'school') throw new HttpError(404, 'School not found');
+  if (orgIsSuspended(org)) throw new HttpError(403, SUSPENDED_MESSAGE);
   return org;
 }
 
@@ -297,6 +299,7 @@ async function attendContext(body) {
   if (!isLive(s)) throw new HttpError(400, 'This class has ended');
   if (!codeValid(s.secret, body.code)) throw new HttpError(400, 'That code has expired. Use the code now showing on the screen.');
   const org = await Organization.findById(s.organization);
+  if (orgIsSuspended(org)) throw new HttpError(403, SUSPENDED_MESSAGE);
   const user = await User.findOne({ organization: s.organization, staffId: body.matric, role: 'student', active: true }).select('+currentChallenge');
   if (!user || !user.webauthnCredentials.length) throw new HttpError(400, BAD_ATTEND);
   return { s, org, user };

@@ -6,6 +6,7 @@ import { formatNaira } from '../money.js';
 
 const STATUS = {
   free: 'Free for now',
+  exempt: 'Billing waived',
   trial: 'Free trial',
   active: 'Paid',
   grace: 'Payment due',
@@ -41,7 +42,13 @@ export default function Billing() {
 
   if (!d) return error ? <p className="error">{error}</p> : <p className="center">Loading…</p>;
   const { state, charge, plan } = d;
-  const isOwner = user.role === 'owner';
+  const isOwner = d.isOwner;
+
+  async function subscribe(name) {
+    setBusy(true); setError(''); setNote('');
+    try { await api('/billing/subscribe', { method: 'POST', body: { packageName: name } }); await load(); }
+    catch (e) { setError(e.message); } finally { setBusy(false); }
+  }
 
   return (
     <>
@@ -51,6 +58,7 @@ export default function Billing() {
 
       <div className="card">
         <h2>{STATUS[state.status]}</h2>
+        {state.status === 'exempt' && <p>Billing is switched off for this workplace. Nothing is charged and nothing is locked.</p>}
         {state.status === 'free' && <p className="muted">Prices have not been set up yet, so nothing is charged.</p>}
         {state.status === 'trial' && <p>Your free trial ends in {state.daysLeft} {state.daysLeft === 1 ? 'day' : 'days'}.</p>}
         {state.status === 'active' && <p>Paid until {new Date(state.until).toLocaleDateString('en-NG', { dateStyle: 'long' })} ({state.daysLeft} {state.daysLeft === 1 ? 'day' : 'days'} left).</p>}
@@ -59,26 +67,46 @@ export default function Billing() {
         <p className="muted">{d.workers} {d.workers === 1 ? 'person is' : 'people are'} active on your account.</p>
       </div>
 
-      {plan.tiers.length > 0 && (
+      {d.state.status !== 'exempt' && plan.packages.length > 0 && (
+        <div className="card">
+          <h2>Packages</h2>
+          <table>
+            <thead><tr><th>Package</th><th>For</th><th>Per 30 days</th><th>Setup fee</th><th></th></tr></thead>
+            <tbody>
+              {plan.packages.map((p) => (
+                <tr key={p.name}>
+                  <td><strong>{p.name}</strong>{p.description && <><br /><small className="muted">{p.description}</small></>}</td>
+                  <td>{p.maxPeople == null ? 'Any number of people' : `Up to ${p.maxPeople} people`}</td>
+                  <td>{formatNaira(p.monthlyPrice)}</td>
+                  <td>{p.setupFee > 0 ? formatNaira(p.setupFee) : 'None'}</td>
+                  <td>{d.subscribed === p.name ? <strong>Your package</strong> : isOwner && <button className="btn small ghost" disabled={busy || (p.maxPeople != null && d.workers > p.maxPeople)} onClick={() => subscribe(p.name)}>{p.maxPeople != null && d.workers > p.maxPeople ? 'Too small' : 'Choose'}</button>}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {!isOwner && <p className="muted">Only the owner can choose a package and pay.</p>}
+        </div>
+      )}
+
+      {d.state.status !== 'exempt' && plan.packages.length > 0 && (
         <div className="card">
           <h2>Next payment</h2>
           {charge ? (
             <>
               <table>
                 <tbody>
-                  <tr><td>{charge.tierName} plan, 30 days</td><td>{formatNaira(charge.monthly)}</td></tr>
+                  <tr><td>{charge.packageName}, 30 days</td><td>{formatNaira(charge.monthly)}</td></tr>
                   {charge.setupFee > 0 && <tr><td>One-time setup fee</td><td>{formatNaira(charge.setupFee)}</td></tr>}
                   {charge.vat > 0 && <tr><td>VAT ({plan.vatPercent}%)</td><td>{formatNaira(charge.vat)}</td></tr>}
                   <tr><td><strong>Total</strong></td><td><strong>{formatNaira(charge.total)}</strong></td></tr>
                 </tbody>
               </table>
-              {isOwner ? (
-                <p><button className="btn" onClick={pay} disabled={busy || !d.canPay}>{busy ? 'Opening…' : 'Pay with Paystack'}</button></p>
-              ) : <p className="muted">Only the owner can pay.</p>}
-              {!d.canPay && <p className="muted">Online payment is not switched on yet.</p>}
+              {charge.overCapacity && <p className="warn">You have {charge.workers} people and {charge.packageName} allows {charge.maxPeople}. Choose a bigger package to pay.</p>}
+              {isOwner && <p><button className="btn" onClick={pay} disabled={busy || !d.canPay || charge.overCapacity}>{busy ? 'Opening…' : 'Pay with Paystack'}</button></p>}
+              {isOwner && !d.canPay && <p className="muted">Online payment is not switched on yet.</p>}
               <p className="muted">Paying adds 30 days. Paying early adds to the end of your current period.</p>
             </>
-          ) : <p className="muted">No price covers your number of people yet. Contact Frankiecode Solutions.</p>}
+          ) : <p className="muted">Choose a package above to see what you will pay.</p>}
         </div>
       )}
 

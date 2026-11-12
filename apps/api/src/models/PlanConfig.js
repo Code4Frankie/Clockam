@@ -7,6 +7,7 @@ const planConfigSchema = new mongoose.Schema(
     setupFee: { type: Number, default: 0 },
     vatPercent: { type: Number, default: 0 },
     trialDays: { type: Number, default: 0 },
+    packages: [{ _id: false, name: String, description: String, monthlyPrice: Number, setupFee: Number, maxPeople: { type: Number, default: null } }],
     tiers: [{ _id: false, name: String, minWorkers: Number, maxWorkers: { type: Number, default: null }, monthlyPrice: Number }],
     updatedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   },

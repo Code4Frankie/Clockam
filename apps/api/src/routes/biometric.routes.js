@@ -11,6 +11,7 @@ import { env } from '../config/env.js';
 import { Organization } from '../models/Organization.js';
 import { User } from '../models/User.js';
 import { requireAuth, requireDevice } from '../middleware/auth.js';
+import { orgIsSuspended, SUSPENDED_MESSAGE } from '../utils/suspension.js';
 import { validate } from '../middleware/validate.js';
 import { clockUser } from '../services/clock.service.js';
 import { toggleBreak } from '../services/break.service.js';
@@ -89,6 +90,7 @@ const identifySchema = z.object({ orgSlug: z.string().min(1), staffId: z.string(
 
 async function findKioskUser(orgSlug, staffId) {
   const org = await Organization.findOne({ slug: orgSlug.toLowerCase() });
+  if (org && orgIsSuspended(org)) throw new HttpError(403, SUSPENDED_MESSAGE);
   const user = org && (await User.findOne({ organization: org._id, staffId, active: true }).select('+currentChallenge'));
   if (!user) throw new HttpError(404, 'Staff ID not found');
   return { org, user };
