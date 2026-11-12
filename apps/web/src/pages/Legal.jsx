@@ -53,6 +53,7 @@ export function Privacy() {
           'You can see your own records.',
           'Managers, admins and the owner of your workplace can see attendance for that workplace.',
           'Frankiecode Solutions staff may access records only to run, support and secure the service.',
+          'Frankiecode Solutions staff can see a list of workplaces with each owner\'s name and email, the number of people, the last activity date and the billing status, so we can support and bill customers. This list does not include anyone\'s attendance records.',
           'Service providers that help us run ClockAm: website and server hosting, the database, and an AI provider that powers the assistant. When the assistant answers a question, the names, staff IDs and times it looks up are sent to that AI provider to write the answer. When email is switched on, an email provider sends password reset messages.',
         ]],
         ['Where it is kept', 'Records are held on servers of our hosting and database providers, which may be outside Nigeria. Pages and the app use encrypted connections. Some standalone attendance units can only use unencrypted connections, depending on the model.'],

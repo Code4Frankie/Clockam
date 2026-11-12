@@ -31,6 +31,7 @@ export default function Layout() {
           {isAdmin && <NavLink to="/settings">{organization?.type === 'school' ? 'Settings' : 'Work hours & location'}</NavLink>}
           {isAdmin && <NavLink to="/billing">Billing</NavLink>}
           <NavLink to="/me">My fingerprint</NavLink>
+          {user.isPlatformAdmin && <NavLink to="/admin/workplaces">Workplaces</NavLink>}
           {user.isPlatformAdmin && <NavLink to="/admin/billing">Plans and prices</NavLink>}
           {user.isPlatformAdmin && <NavLink to="/admin/seo">Site audit</NavLink>}
           <a href={`/kiosk/${organization?.slug}`} target="_blank" rel="noreferrer">Open kiosk ↗</a>

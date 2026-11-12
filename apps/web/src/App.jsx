@@ -26,6 +26,7 @@ import ClassScreen from './pages/ClassScreen.jsx';
 import Courses from './pages/Courses.jsx';
 import CourseDetail from './pages/CourseDetail.jsx';
 import Billing from './pages/Billing.jsx';
+import AdminWorkplaces from './pages/AdminWorkplaces.jsx';
 import AdminBilling from './pages/AdminBilling.jsx';
 import Students from './pages/Students.jsx';
 import Landing from './pages/Landing.jsx';
@@ -71,6 +72,7 @@ export default function App() {
         <Route path="/corrections" element={<Corrections />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="/billing" element={<Billing />} />
+        <Route path="/admin/workplaces" element={<AdminWorkplaces />} />
         <Route path="/admin/billing" element={<AdminBilling />} />
         <Route path="/admin/seo" element={<AdminSeo />} />
       </Route>

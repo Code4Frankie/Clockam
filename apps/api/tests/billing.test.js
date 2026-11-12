@@ -94,3 +94,31 @@ test('a paid transaction must match amount, currency, reference and success', ()
   assert.ok(!transactionMatches(p, { status: 'success', currency: 'NGN', amount: 6450000, reference: 'ca_2' }));
   assert.ok(!transactionMatches(p, null));
 });
+
+import { buildRows, filterRows } from '../src/utils/workplaces.js';
+
+test('workplace list: owner, people, last activity and billing per workplace; search works', () => {
+  const orgs = [
+    { _id: 'a', name: 'Acme Ltd', slug: 'acme', type: 'workplace', createdAt: new Date('2026-11-01') },
+    { _id: 'b', name: 'Test School', slug: 'test-school', type: 'school', createdAt: new Date('2026-11-05') },
+  ];
+  const rows = buildRows({
+    orgs,
+    owners: new Map([['a', { name: 'Ada Obi', email: 'ada@acme.ng' }]]),
+    people: new Map([['a', 12]]),
+    lastClockIn: new Map([['a', new Date('2026-11-08')]]),
+    lastClass: new Map([['a', new Date('2026-11-10')], ['b', new Date('2026-11-06')]]),
+    plan: { setupFee: 0, vatPercent: 0, trialDays: 14, tiers: [] },
+    enforced: false, now: new Date('2026-11-11'),
+  });
+  assert.equal(rows[0].lastActive.toISOString().slice(0, 10), '2026-11-10', 'latest of clock-in and class');
+  assert.equal(rows[0].people, 12);
+  assert.equal(rows[0].ownerEmail, 'ada@acme.ng');
+  assert.equal(rows[1].ownerEmail, '', 'no owner found is blank, not a crash');
+  assert.equal(rows[1].people, 0);
+  assert.equal(rows[1].billing, 'free');
+  assert.equal(filterRows(rows, 'ADA@').length, 1);
+  assert.equal(filterRows(rows, 'school')[0].workplaceId, 'test-school');
+  assert.equal(filterRows(rows, '').length, 2);
+  assert.equal(buildRows({ orgs: [{ _id: 'z', name: 'N', slug: 'n', createdAt: new Date() }], owners: new Map(), people: new Map(), lastClockIn: new Map(), lastClass: new Map(), plan: { tiers: [] }, enforced: false })[0].lastActive, null);
+});
